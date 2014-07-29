@@ -150,6 +150,27 @@ mkdir webroot/assets/moment
 cp -af ./$THIRD_PARTY/moment-v2.6.0/moment.js webroot/assets/moment/moment.js
 #End - Copy Moment Date-Formatter from $THIRD_PARTY
 
+#Start - Copy Backbone from $THIRD_PARTY
+rm -rf webroot/assets/backbone
+mkdir webroot/assets/backbone
+cp -af ./$THIRD_PARTY/backbone-min.js webroot/assets/backbone/backbone-min.js
+#End - Copy Backbone from $THIRD_PARTY
+
+#Start - Copy Requirejs & Textjs from $THIRD_PARTY
+rm -rf webroot/assets/requirejs
+mkdir webroot/assets/requirejs
+#cp -af ./$THIRD_PARTY/require.min.js webroot/assets/requirejs/require.min.js
+#cp -af ./$THIRD_PARTY/text.js webroot/assets/requirejs/text.js
+cp -af ./$THIRD_PARTY/requirejs-v1.0.2/require.js webroot/assets/requirejs/require.js
+cp -af ./$THIRD_PARTY/text.js webroot/assets/requirejs/text.js
+#End - Copy Requirejs & Textjs  from $THIRD_PARTY
+
+#Start - Copy Underscore from $THIRD_PARTY
+rm -rf webroot/assets/underscore
+mkdir webroot/assets/underscore
+cp -af ./$THIRD_PARTY/underscore-min.js webroot/assets/underscore/underscore-min.js
+#End - Copy Underscore from $THIRD_PARTY
+
 #Start - Merging All JS files
 rm -f webroot/js/contrail-all-1.js
 rm -f webroot/js/contrail-all-2.js
