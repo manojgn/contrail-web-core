@@ -393,9 +393,9 @@ function onHashChange(lastHash, currHash) {
     try {
         if (currPageHash == '') {            
             if(globalObj['webServerInfo']['role'] == roles['ADMIN'])
-                currPageHash = "mon_infra_dashboard";
+                currPageHash = "setting_sm_vns";
             if(globalObj['webServerInfo']['role'] == roles['TENANT'])
-                currPageHash = "mon_net_dashboard"; //TODO: Need to check whether queryparams needed or not
+                currPageHash = "setting_sm_vns"; //TODO: Need to check whether queryparams needed or not
         }
         var currMenuObj = menuHandler.getMenuObjByHash(currPageHash);
         //Toggle menu button only if there is a change in hash of main menu[Monitor/Configure/Settings/Queries]
