@@ -244,8 +244,7 @@ function getDefaultGridConfig() {
         function initGridHeader() {
             // Grid Header - Title + Other Actions like Expand/Collapse, Search and Custom actions
             if (gridConfig.header) {
-                headerTemplate = Handlebars.compile(generateGridHeaderTemplate(gridConfig.header));
-                gridContainer.append(headerTemplate(gridConfig.header.title));
+                generateGridHeaderTemplate(gridConfig.header);
 
                 gridContainer.find('.grid-widget-header .widget-toolbar-icon').on('click', function(e) {
                     var command = $(this).attr('data-action'),
@@ -580,7 +579,7 @@ function getDefaultGridConfig() {
                         }
 
                         //$('#' + gridContainer.prop('id') + '-action-menu').remove();
-                        generateGridActionTemplate(actionCellArray, gridContainer, args.row);
+                        addGridRowActionDroplist(actionCellArray, gridContainer, args.row);
                         var offset = $(e.target).offset();
                         $('#' + gridContainer.prop('id') + '-action-menu-' + args.row).css({
                             top: offset.top+20 + 'px',
@@ -946,7 +945,8 @@ function getDefaultGridConfig() {
                 <h4 class="grid-header-text smaller {{this.cssClass}}"> \
             		<i class="grid-header-icon-loading icon-spinner icon-spin"></i> \
                     <i class="grid-header-icon {{this.icon}} {{this.iconCssClass}} hide"></i> {{this.text}} \
-                </h4>';
+                </h4>',
+                headerTemplate;
 
             if(headerConfig.defaultControls.collapseable){
                 template += '\
@@ -996,23 +996,66 @@ function getDefaultGridConfig() {
                 });
             }
 
-            return '<div class="grid-header"><div class="widget-header grid-widget-header">' + template + '</div></div>';
+            headerTemplate = '<div class="grid-header"><div id="' + gridContainer.prop('id') + '-header' + '"class="widget-header grid-widget-header">' + template + '</div></div>';
+            gridContainer.append(Handlebars.compile(headerTemplate)(gridConfig.header.title));
+
+            if(headerConfig.advanceControls){
+                $.each(headerConfig.advanceControls, function(key, control) {
+                    if(control.type == 'link') {
+                        addGridHeaderAction(key, control, gridContainer);
+                    } else if (control.type == 'dropdown') {
+                        addGridHeaderActionDroplist(key, control, gridContainer);
+                    }
+                });
+            }
         };
 
-        function generateGridActionTemplate(actionConfig, gridContainer, rowIndex) {
-            var gridActionId = $('<ul id="' + gridContainer.prop('id') + '-action-menu-' + rowIndex + '" class="dropdown-menu pull-right dropdown-caret grid-action-menu"></ul>').appendTo('body');
-            $.each(actionConfig, function(key,val){
-                var actionItem = $('\
-			<li><a class="tooltip-success" data-rel="tooltip" data-placement="left" data-original-title="' + val.title + '"> \
-				<i class="' + val.iconClass + '"></i> &nbsp; ' + val.title + '</a> \
-			</li>').appendTo('#' +gridContainer.prop('id') + '-action-menu-' + rowIndex);
+        function addGridHeaderAction(key, actionConfig, gridContainer) {
+            var actionId = gridContainer.prop('id') + '-header-action-' + key;
+            var action = $('<div class="widget-toolbar pull-right"><a class="widget-toolbar-icon" title="' + actionConfig.title + '">' +
+                '<i class="' + actionConfig.iconClass + '"></i></a>' +
+                '</div>').appendTo('#' + gridContainer.prop('id') + '-header');
+
+            $(action).on('click', function(){
+                actionConfig.onClick();
+            });
+        };
+
+        function addGridHeaderActionDroplist(key, actionConfig, gridContainer) {
+            var actions = actionConfig.actions,
+                actionId = gridContainer.prop('id') + '-header-action-' + key;
+            var actionsTemplate = '<div class="widget-toolbar pull-right"><a class="dropdown-toggle" data-toggle="dropdown" href="#">' +
+                '<i class="' + actionConfig.iconClass + '"></i></a>' +
+                '<ul id="' + actionId + '" class="pull-right dropdown-menu dropdown-caret">' +
+                '</ul></div>';
+
+            $(actionsTemplate).appendTo('#' + gridContainer.prop('id') + '-header');
+            $.each(actions, function(key, actionItemConfig){
+                var actionItem = $('<li><a data-original-title="' + actionItemConfig.title + '"> \
+                                        <i class="' + actionItemConfig.iconClass + '"></i> &nbsp; ' + actionItemConfig.title + '</a> \
+                                        </li>').appendTo('#' + actionId);
 
                 $(actionItem).on('click', function(){
-                    val.onClick(rowIndex);
+                    actionItemConfig.onClick();
+                });
+            });
+        };
+
+        function addGridRowActionDroplist(actionConfig, gridContainer, rowIndex) {
+            var gridActionId = $('<ul id="' + gridContainer.prop('id') + '-action-menu-' + rowIndex + '" class="dropdown-menu pull-right dropdown-caret grid-action-menu"></ul>').appendTo('body');
+            $.each(actionConfig, function(key, actionItemConfig){
+                var actionItem = $('\
+                    <li><a class="tooltip-success" data-rel="tooltip" data-placement="left" data-original-title="' + actionItemConfig.title + '"> \
+                        <i class="' + actionItemConfig.iconClass + '"></i> &nbsp; ' + actionItemConfig.title + '</a> \
+                    </li>').appendTo('#' + gridContainer.prop('id') + '-action-menu-' + rowIndex);
+
+                $(actionItem).on('click', function(){
+                    actionItemConfig.onClick(rowIndex);
                     gridActionId.remove();
                 });
             });
         };
+
         function emptyGridHandler(){
         	if(!gridOptions.lazyLoading) {
         		gridContainer.data('contrailGrid').showGridMessage('empty');
