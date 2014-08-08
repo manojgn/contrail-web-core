@@ -654,6 +654,9 @@ function getDefaultGridConfig() {
             eventHandlerMap.dataView['onUpdateData'] = function () {
                 //Refresh the grid only if it's not destroyed
                 if($(gridContainer).data('contrailGrid')) {
+                	grid.invalidateAllRows();
+                	grid.updateRowCount();
+                    grid.render();
                     if(contrail.checkIfFunction(gridDataSource.events.onUpdateDataCB)) {
                         gridDataSource.events.onUpdateDataCB();
                     }

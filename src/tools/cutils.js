@@ -274,7 +274,7 @@ function formatPolicyRule(rule, domain, project) {
 
             var src_ports = policy_ports_display(rule["src_ports"]); 
             if(isSet(src_ports))
-                rule_display += " port " + policyRuleFormat(src_ports);
+                rule_display += " ports " + policyRuleFormat(src_ports);
 
             if(isSet(rule["direction"]))
             	rule_display += ' ' + policyRuleFormat(rule["direction"]);
@@ -284,7 +284,7 @@ function formatPolicyRule(rule, domain, project) {
 
             var dst_ports = policy_ports_display(rule["dst_ports"]); 
             if(isSet(dst_ports))
-                rule_display += ' port ' + policyRuleFormat(dst_ports);
+                rule_display += ' ports ' + policyRuleFormat(dst_ports);
 
             var action_list = policy_services_display(rule["action_list"], domain, project); 
             if(isSet(action_list))
@@ -298,18 +298,14 @@ function formatSrcDestAddresses (rule, domain, project) {
     var rule_display = '';
     var addrSrcDest = policy_net_display(rule, domain, project); 
     if(isSet(addrSrcDest.value)) {
-        if(addrSrcDest.label) {
-            rule_display = " network " + policyRuleFormat(addrSrcDest.value);
-        } else {
-             rule_display = " " + policyRuleFormat(addrSrcDest.value);                   
-        }  
+        rule_display = addrSrcDest.label + addrSrcDest.value;
     }
     return rule_display;     
 }
 
 function policy_net_display(nets, domain, project) {
     var net_disp_all = "";
-    var isShowLabel = true;
+    var labelName = ' network ';
     if (isSet(nets) && nets.length > 0) {
         for (var i = 0; i < nets.length; i++) {
             var net_disp = "";
@@ -320,41 +316,60 @@ function policy_net_display(nets, domain, project) {
                 }    
                 if (isSet(net["subnet"]) && isSet(net["subnet"]["ip_prefix"]) &&
                     isSet(net["subnet"]["ip_prefix_len"])) {
-                    isShowLabel = false;
+                    labelName = ' ';
                     net_disp +=
-                        net["subnet"]["ip_prefix"] + "/" +
-                            net["subnet"]["ip_prefix_len"];
+                        policyRuleFormat(net["subnet"]["ip_prefix"] + "/" +
+                            net["subnet"]["ip_prefix_len"]);
                 }            
                 if (isSet(net["virtual_network"])) {
-                	if(isSet(domain) && isSet(project) && isString(domain) &&
-                		isString(project)) {
-                		var splits = net["virtual_network"].split(":");
-                		if(domain === splits[0] && project === splits[1]) {
-                            if(splits[2].toLowerCase() === "any" 
-                                || splits[2].toLowerCase() === "local"){
-                                net_disp = net["virtual_network"].toString();
-                            } else {
-								net_disp += splits[2];
-                            }
-                		} else {
-                            //prepare network display format
-                            var netArry = net["virtual_network"].toString().split(':');
-                            if(netArry[0].toLowerCase() != 'any' && netArry[0].toLowerCase() != 'local') {
-                                netArry = netArry[2] + ' (' + netArry[0] + ':' + netArry[1] + ')';
-                			    net_disp += netArry;
-                            } else {
-                			    net_disp += netArry[0];                                
-                            }
-                		}
-                	} else {
-                		net_disp += net["virtual_network"].toString();	
-                	}
+                    labelName = ' network ';
+                    net_disp += prepareFQN(domain, project, net["virtual_network"]);
+                }
+                if(isSet(net["network_policy"])) {
+                    labelName = ' policy ';
+                    net_disp += prepareFQN(domain, project, net["network_policy"]);
                 }
             }
             net_disp_all += net_disp;
         }
     }
-    return {value : net_disp_all, label : isShowLabel} ;
+    return {value : net_disp_all, label : labelName} ;
+}
+
+function prepareFQN(domain, project, net) {
+    var net_disp = '';
+    if(isSet(domain) && isSet(project) && isString(domain) &&
+    	isString(project)) {
+    	var splits = net.split(":");
+    	if(domain === splits[0] && project === splits[1]) {
+            if(splits.length === 3) {    
+                if(splits[2].toLowerCase() === "any" 
+                    || splits[2].toLowerCase() === "local"){
+                    net_disp = policyRuleFormat(net.toString());
+                } else {
+                    net_disp = policyRuleFormat(splits[2]);
+                }
+            } else {
+                net_disp = policyRuleFormat(splits[0]);    
+            }    
+    	} else {
+            //prepare network display format
+            var netArry = net.toString().split(':');
+            if(netArry.length === 3) {
+                if(netArry[0].toLowerCase() != 'any' && netArry[0].toLowerCase() != 'local') {
+                    netArry = policyRuleFormat(netArry[2]) + ' (' + netArry[0] + ':' + netArry[1] + ')';
+                    net_disp = netArry;
+                } else {
+                    net_disp = policyRuleFormat(netArry[0]);                                
+                }
+            } else {
+                net_disp = policyRuleFormat(netArry[0]); 
+            }
+    	}
+    } else {
+    	net_disp = policyRuleFormat(net.toString());	
+    }
+    return net_disp;
 }
 
 function policy_ports_display(ports) {
@@ -516,6 +531,28 @@ function getFQNofVN(domain, project, vn) {
         return fqn;
     } else if (isSet(vn)) {
         return vn
+    }
+    return null;
+}
+
+function getFQNofPolicy(domain, project, policy) {
+	if(!isSet(domain) || !isSet(project)) {
+		if(isSet(policy)) {
+			return policy;
+		} else {
+			return null;
+		}
+	}
+    var fqn = jsonPath(configObj, 
+            "$..policys-input[?(@.fq_name[0]=='" + domain + 
+            "' && @.fq_name[1]=='" + project + 
+            "' && @.fq_name[2]=='" + policy + "')]");
+    if (fqn && fqn.length == 1) {
+        fqn = fqn[0].fq_name;
+        fqn = (fqn.toString()).replace(/,/g, ":");
+        return fqn;
+    } else if (isSet(policy)) {
+        return policy
     }
     return null;
 }
@@ -1137,3 +1174,5 @@ cutils.setDomainProjectEmptyMsg = setDomainProjectEmptyMsg;
 cutils.emptyCookie = emptyCookie;
 cutils.policyRuleFormat = policyRuleFormat;
 cutils.formatSrcDestAddresses = formatSrcDestAddresses;
+cutils.prepareFQN = prepareFQN;
+cutils.getFQNofPolicy = getFQNofPolicy;
