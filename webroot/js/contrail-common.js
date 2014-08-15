@@ -99,6 +99,20 @@ function Contrail() {
     	}
 		return '<pre class="pre-format-JSON2HTML">' + formatJsonObject(json, formatDepth, 0) + '</pre>';
     };
+    this.getJSONValueByPath = function(path,obj) {
+    	path = path.replace(/\[(\w+)\]/g, '.$1');
+        path = path.replace(/^\./, '');
+        var pathArray = path.split('.');
+        while (pathArray.length) {
+            var property = pathArray.shift();
+            if (obj != null && property in obj) {
+                obj = obj[property];
+            } else {
+                return;
+            }
+        }
+        return JSON.stringify(obj);
+    }
     
     function formatJsonObject(jsonObj, formatDepth, currentDepth) {
     	var output = '',

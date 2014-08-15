@@ -520,8 +520,13 @@ function getDefaultGridConfig() {
             	dc = dataView.getItemById(id);
         	
             if(contrail.checkIfExist(dc)){
-            	gridContainer.find('.slick-row-detail-template-' + id).html(template(dc));
-            	gridContainer.data('contrailGrid').adjustDetailRowHeight(id);
+            	if(contrail.checkIfExist(gridOptions.detail.templateConfig)){
+	            	gridContainer.find('.slick-row-detail-template-' + id).html(template({dc:dc, templateConfig: gridOptions.detail.templateConfig}));
+            	}
+            	else{
+            		gridContainer.find('.slick-row-detail-template-' + id).html(template(dc));
+            	}
+	            	gridContainer.data('contrailGrid').adjustDetailRowHeight(id);
             }
             else {
             	gridContainer.find('.slick-row-detail-template-' + id).parents('.slick-row-detail').remove();

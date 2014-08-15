@@ -66,6 +66,10 @@ Handlebars.registerHelper('formatJSON2HTML', function(rawdata, options) {
     return contrail.formatJSON2HTML(rawdata,2);
 });
 
+Handlebars.registerHelper('getJSONValueByPath', function(path, obj) {
+	return contrail.getJSONValueByPath(path, obj);
+});
+
 Handlebars.registerHelper('formatString2HTML', function(string) {
     return string;
 });
