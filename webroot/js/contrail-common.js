@@ -108,10 +108,14 @@ function Contrail() {
             if (obj != null && property in obj) {
                 obj = obj[property];
             } else {
-                return;
+                return '-';
             }
         }
-        return JSON.stringify(obj);
+        if(this.checkIfExist(obj)) {
+            return obj;
+        } else {
+            return '-';
+        }
     }
     
     function formatJsonObject(jsonObj, formatDepth, currentDepth) {
