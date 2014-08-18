@@ -328,6 +328,28 @@ function getDefaultGridConfig() {
         	if(contrail.checkIfExist(gridOptions)){
         		var columns = [];
 	
+//        		columns = [];
+//                columns.push({
+//                    cssClass: "",
+//                    id: "slick_highlighted",
+//                    field: "highlighted",
+//                    formatter: function(r, c, v, cd, dc) {
+//                    	return '<div class="padding-2-0;"><i class="icon-star"></i></div>';
+//                    },
+//                    id: "_row_highlighted",
+//                    resizable: false,
+//                    sortable: false,
+//                    toolTip: "",
+//                    width: 30,
+//                    searchable: false,
+//                    exportConfig: {
+//                        allow: false
+//                    }
+//                });
+//                
+//                columns = columns.concat(gridColumns);
+//                gridColumns = columns;
+	                    		
 	            // Adds checkbox to all rows and header for select all functionality
 	            if(gridOptions.checkboxSelectable != false) {
 	                columns = [];
