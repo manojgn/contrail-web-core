@@ -54,6 +54,11 @@ cp -af ./$THIRD_PARTY/jquery-ui-1.10.4/themes/base/jquery-ui.css webroot/assets/
 cp -af ./$THIRD_PARTY/jquery-ui-1.10.4/themes/base/images webroot/assets/jquery-ui/css/
 #End - Copy jquery-ui files from $THIRD_PARTY
 
+#Start - Copy jquery-ui-multiselect files from $THIRD_PARTY
+cp -af ./$THIRD_PARTY/jquery-ui-multiselect-widget-1.13/src/jquery.multiselect.min.js webroot/assets/jquery-ui/js/jquery.multiselect.min.js
+cp -af ./$THIRD_PARTY/jquery-ui-multiselect-widget-1.13/jquery.multiselect.css webroot/assets/jquery-ui/css/jquery.multiselect.css
+#End - Copy jquery-ui-multiselect files from $THIRD_PARTY
+
 #Start - Copy Bootstrap from $THIRD_PARTY
 rm -rf webroot/assets/bootstrap
 mkdir webroot/assets/bootstrap
@@ -107,12 +112,6 @@ cp -af ./$THIRD_PARTY/select2-v3.4.6/select2.png webroot/assets/select2/styles/s
 cp -af ./$THIRD_PARTY/select2-v3.4.6/select2x2.png webroot/assets/select2/styles/select2x2.png
 cp -af ./$THIRD_PARTY/select2-v3.4.6/select2-spinner.gif webroot/assets/select2/styles/select2-spinner.gif
 #End - Copy Select2 from $THIRD_PARTY
-
-#Start - Copy 2way-Multiselect from $THIRD_PARTY
-rm -rf webroot/assets/2way-multiselect
-mkdir -p webroot/assets/2way-multiselect/js
-cp -af ./$THIRD_PARTY/multiselect-v1.0/js/multiselect.js webroot/assets/2way-multiselect/js/multiselect.js
-#End - Copy 2way-Multiselect from $THIRD_PARTY
 
 #Start - Copy Slickgrid from $THIRD_PARTY
 rm -rf webroot/assets/slickgrid

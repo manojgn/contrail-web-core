@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="/assets/select2/styles/select2.css" />
     <link rel="stylesheet" href="/assets/datetimepicker/styles/jquery.datetimepicker.css" />
     <link rel="stylesheet" href="/assets/slickgrid/styles/slick.grid.css">
+    <link rel="stylesheet" href="/assets/jquery-ui/css/jquery.multiselect.css" />
 
     <!--Contrail Styles-->
     <link rel="stylesheet" href="/css/contrail.layout.css?built_at=1395882185" />
@@ -105,6 +106,13 @@
         <div class="span4">
             <h5>Combo Box</h5>
             <input id="contrail-combobox" class="span12" />
+        </div>
+        <div class="span4" id="jqui-multiselect">
+            <h5>Checked Multiple Selections</h5>
+            <select multiple="multiple" name="checkmss" size="5">
+                <option value="option1">Option 1</option>
+                <option value="option2">Option 2</option>
+            </select>
         </div>
     </div>
     <div class="row-fluid">
@@ -314,6 +322,7 @@
 <script src="/assets/jquery/js/jquery.timer.js?built_at=1395882185"></script>
 <script src="/assets/jquery-ui/js/jquery-ui.js?built_at=1395882185"></script>
 <script src="/assets/jquery/js/jquery.ui.touch-punch.min.js?built_at=1395882185"></script>
+<script src="/assets/jquery-ui/js/jquery.multiselect.min.js"></script>
 <!-- End dev_env -->
 
 <!--Bootstrap Scripts-->
@@ -357,7 +366,6 @@
 <script src="/js/config_global.js"></script>
 <script src="/assets/datetimepicker/js/jquery.datetimepicker.js"></script>
 <script src="/assets/moment/moment.js"></script>
-<script src="/assets/2way-multiselect/js/multiselect.js"></script>
 
 <script>
 
@@ -930,6 +938,9 @@ $("#e2").contrailDropdown({
         }
     }
 });
+
+$("#jqui-multiselect").find("select").multiselect();
+
 </script>
 
 </body>
