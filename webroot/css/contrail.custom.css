@@ -1515,3 +1515,22 @@ color: #b94a48;
   content : url(../img/subnet.png);
   vertical-align : middle;
 }
+
+.group-detail-container h6 {
+	padding: 0 0 5px;
+	margin: 0 5px 5px;
+	color: #3182bd;
+	border-bottom: 1px solid #eee;
+}
+.group-detail-container ul.item-list li {
+	border: none; 
+	padding: 2px 5px;
+}
+.group-detail-container ul.item-list li .key {
+	color:#777; 
+	font-weight:200;
+}
+.group-detail-container ul.item-list li .value {
+	color:#555;
+	font-weight:400;
+}
