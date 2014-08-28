@@ -2687,6 +2687,7 @@ function getKeysForValue(obj, value) {
   }
   return all;
 }
+
 function getIPforHostName(name,dataSourceName) {
    if(globalObj.dataSources != null && globalObj.dataSources[dataSourceName] != null 
        &&  globalObj.dataSources[dataSourceName].dataSource != null) {
@@ -2822,17 +2823,22 @@ function ManageCrossFilters(){
         //cfObj.callBacks.fire();
     }
     
-    this.addDimension = function(cfName,dimensionName){
+    this.addDimension = function(cfName,dimensionName,formatFn){
         var cfObj = globalObj['crossFilters'][cfName];
         var dataCF = cfObj.crossfilter;
         var dimension;
         if(dataCF != null){
-           dimension = dataCF.dimension(function(d) { return d[dimensionName]; });
+           dimension = dataCF.dimension(function(d) { 
+               if(formatFn != null)
+                   return formatFn(d[dimensionName]);
+               else
+                   return d[dimensionName]; 
+           });
            cfObj.dimensions[dimensionName] = dimension;
         }
         globalObj['crossFilters'][cfName] = cfObj;
     }
-    
+
     this.getDimension = function(cfName,dimensionName){
         var cfObj = globalObj['crossFilters'][cfName];
         if(cfObj != null && cfObj.dimensions != null && cfObj.dimensions[dimensionName] != null){
@@ -2959,3 +2965,23 @@ manageCrossFilters.load();
 /**
  * Cross filter management methods ENDS
 */
+/*
+ * This function adds/subtract the buffer to the min and max values array provided and if "isPositive"
+ * is true it will return only positive values 
+ */
+function addBufferToRange(obj) {
+    var value = obj['values'];
+    var buffer = obj['buffer']/100;
+    var minValue = value[0];
+    var formatFn = obj['formatFn'];
+    value[0] = value[0] - value[0] * buffer;
+    value[1] = value[1] + value[1] * buffer;
+    if(obj['isPositive'] && value[0] < 0){
+        value[0] = minValue;
+    }
+    if(formatFn != null) {
+        value[0] = formatFn(value[0]);
+        value[1] = formatFn(value[1]);
+    }
+    return value;
+}

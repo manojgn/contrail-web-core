@@ -549,13 +549,14 @@
                     </div>
                     <div class="axis-params">
                         {{# each this}}
-                            {{#IfCompare @index 0 operator='!='}}
-                                |
-                            {{/IfCompare}}
-                            <div style="display:inline-block;">
-                                <label class="chart-settings-label">{{this.lbl}} : </label><div id="{{this.id}}" style="font-size:11px;"></div>
-                            </div>
-                             
+                            <div style="padding-top: 5px;">
+                                <div style="display:inline-block;">
+                                     <label style="margin-bottom:0px;display:inline-block;font-size:11px;">{{this.lbl}} : </label><div id="{{this.id}}" style="font-size:11px;"></div>
+                                </div>
+                                <div style="display:inline-block;">
+                                    <div id="{{this.id}}_crossfilter" class="chart" style="width:320px;"></div>
+                                </div>
+                             </div>
                         {{/each}}
                     </div>
                     <div>

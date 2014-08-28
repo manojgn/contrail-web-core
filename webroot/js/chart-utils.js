@@ -39,7 +39,25 @@
                 yLblFormat = ifNull(data['yLblFormat'], d3.format());
 
             var yDataType = ifNull(data['yDataType'], '');
-
+            var hoveredOnTooltip,tooltipTimeoutId,yLbl = ifNull(chartOptions['yLbl'], 'Memory (MB)');
+            var yLblFormat = function(y) {
+                return parseFloat(d3.format('.02f')(y)).toString();
+            }
+            var yDataType = ifNull(chartOptions['yDataType'], '');
+            if (data['d'] != null)
+                d = data['d'];
+            //Merge the data values array if there are multiple categories plotted in chart, to get min/max values
+            var dValues = $.map(d,function(obj,idx) {
+                return obj['values'];
+            });
+            dValues = flattenList(dValues);
+            //copying the xfield and yfield values to x and y in charts data
+            $.each(dValues,function(idx,obj){
+               if(obj['xField'] != null)
+                   obj['x'] = obj[obj['xField']];
+               if(obj['yField'] != null)
+                   obj['y'] = obj[obj['yField']];
+            });
             var dataStack = [];
             var totalBucketizedNodes = 0;
             isBucketize = (chartOptions['isBucketize'])? true: false;
@@ -66,7 +84,6 @@
                     return parseFloat(d3.format('.02f')(y)).toString();
                 };
             }
-
             //If the axis is bytes, check the max and min and decide the scale KB/MB/GB
             //Set size domain
             var sizeMinMax = getBubbleSizeRange(dValues);
@@ -355,14 +372,22 @@
                          });
                          var chartObj = $.extend(true,{},data);
                          var updateChartParams = chartObj['chartOptions'];
+                         var chartData = d3.select($(selector).find('svg')[0]).datum(),values = [],defaultKeys = {},filterDimension;
+                         $.each(chartData,function(idx,data){
+                             values = $.merge(values,data['values']); 
+                         });
+                         //var dataCrossFilter = crossfilter(values);
+                         var cfName = chartOptions['crossFilter'];
+                         manageCrossFilters.updateCrossFilter(cfName, values);
+                         var dataCrossFilter = manageCrossFilters.getCrossFilter(cfName);
+                         var cfCharts = [],cfChart;
                          $.each(settings,function(idx,setVal){
                              var id = setVal['id'],data = [];
                              var axisType = id.indexOf('xAxis') > -1 ? 'x' : 'y';
                              $("#"+id).contrailDropdown({
                                  dataTextField:"text",
                                  dataValueField:"value",
-                                 change:function(e){
-                                     //var chartData = d3.select($(selector).find('svg')[0]).datum();
+                                 change:function(e) {
                                      var chartData = $(selector).data('origData')['d'];
                                      var selValue = $(e['target']).data('contrailDropdown').getSelectedData()[0]['text'];
                                      updateChartParams['tooltipFn'] = tooltipFn;
@@ -370,26 +395,28 @@
                                          $.each(dataItem['values'],function(sIdx,value){
                                              $.each(chartOptions[id],function(index,obj){
                                                 if(obj['lbl'] == selValue) {
-                                                    var values = [],range = [];
-                                                    $.each(chartData,function(idx,data){
-                                                       values = $.merge(values,data['values']); 
-                                                    });
+                                                    var range = [],updatedRange = [];
                                                      /* here if type is null, considering it as default data type integer
                                                      * In case of single point (which mean only one bubble or main bubbles with same x and y value)
                                                      * minimum and maximum will be same so whole axis will have only two values so we are setting the domain.
                                                      */
+                                                    var formatFn;
+                                                    var field = axisType == 'x'? 'xField' : 'yField'
                                                     if(obj['formatFn'] != null) {
-                                                        value[axisType] = parseInt(obj['formatFn'](value[obj['key']]));
+                                                        value[field] = parseInt(obj['formatFn'](value[obj['key']]));
+                                                        formatFn = obj['formatFn'];
                                                     } else {
                                                         if(obj['type'] != null) {
                                                             updateChartParams[axisType+"LblFormat"] = d3.format('.02f');
-                                                            value[axisType] = parseFloat(value[obj['key']]);
+                                                            value[field] = parseFloat(value[obj['key']]);
+                                                            formatFn = d3.format('.02f');
                                                         } else {
                                                             updateChartParams[axisType+"LblFormat"] = d3.format('0d');
-                                                            value[axisType] = parseInt(value[obj['key']]);
+                                                            value[field] = parseInt(value[obj['key']]);
+                                                            formatFn = d3.format('0d');
                                                         }
                                                     }
-                                                    range = d3.extent(values,function(item){return item[axisType]});
+                                                    range = d3.extent(values,function(item){return item[field]});
                                                     if(obj['type'] == null && range[1] == range[0]) {
                                                         range[0] = (range[0] - range[0] * 0.05 < 0 ) ? 0 : Math.floor(range[0] - range[0] * 0.05);
                                                         range[1] = Math.ceil(range[1] + range[1] * 0.05);
@@ -412,6 +439,8 @@
                                  }
                              });
                              $.each(chartOptions[id],function(idx,obj){
+                                 if(obj['defaultParam'])
+                                     defaultKeys[id] = obj;
                                  var obj = {
                                          id:obj['lbl'],
                                          text:obj['lbl'],
@@ -420,8 +449,57 @@
                                  data.push(obj);
                              });
                              $("#"+id).data('contrailDropdown').setData(data);
-                         })  
-                     }); 
+                             if(dataCrossFilter != null) {
+                                 var formatFn;
+                                 if(defaultKeys[id]['formatFn'] != null) {
+                                     formatFn = defaultKeys[id]['formatFn'];
+                                 } else {
+                                     if(defaultKeys[id]['type'] != null)
+                                         formatFn = d3.format('.02f')
+                                     else
+                                         formatFn = d3.format('0d');
+                                 }
+                                 manageCrossFilters.addDimension(cfName, defaultKeys[id]['key'], formatFn);
+                                 /*
+                                  * Filter dimension to be used for data retrieval
+                                  */
+                                 manageCrossFilters.addDimension(cfName, axisType);
+                                 filterDimension = manageCrossFilters.getDimension(cfName,axisType);
+                                 var dimension = manageCrossFilters.getDimension(cfName, defaultKeys[id]['key']);
+                                if(dimension.top(1).length > 0 ) {
+                                    maxValue = parseFloat(d3.max(dimension.group().all(),function(d) {return d['key']}));
+                                    barHeight = d3.max(dimension.group().all(),function(d) {return d['value']});
+                                }
+                                var axisCFChart =  barChart()
+                                             .dimension(dimension)
+                                             .group(dimension.group())
+                                           .x(d3.scale.linear()
+                                             .domain([0,(maxValue+(maxValue * 0.1))])//Added 1% buffer 
+                                             .rangeRound([0, 300]))
+                                           .y(d3.scale.linear()
+                                              .domain([0,barHeight])
+                                              .range([50,0]))
+                                cfCharts.push(axisCFChart);
+                             }
+                         });
+                         if(cfCharts.length > 0) {
+                             var cfChart =  d3.selectAll('.chart')
+                                              .data(cfCharts)
+                                              .each(function(currChart){
+                                                currChart.on('brush',function(){
+                                                    var filteredData = filterDimension.top(Infinity);
+                                                    chartObj['d'] = filteredData;
+                                                    $(selector).initScatterChart(chartObj);
+                                                    //Need to discuss and uncomment it 
+                                                    //renderAll(cfChart);
+                                                }).on("brushend",function() {
+                                                    $(selector).initScatterChart(chartObj);
+                                                    //renderAll(cfChart);
+                                                })
+                            });
+                            renderAll(cfChart);
+                         }
+                    }); 
                  }
                 initScatterBubbleChart(selector, d, chart, chartOptions);
                 var chartid = $(selector).attr('id');
@@ -825,11 +903,16 @@ function mergeBucketIntoSingleNode(filteredNodes,minMaxX,minMaxY,parentMinMaxX,p
         if(filteredNodes.length > 1){
             avgX = d3.mean(filteredNodes,function(d){return d.x});
             avgY = d3.mean(filteredNodes,function(d){return d.y});
+            var totatlIntfCnt = 0;
+            $.each(filternedNodes,function(i,d){
+                totatlIntfCnt += d['intfCnt'];
+            });
             //this is to deviate a little bit from the middle
             avgX = disperseRandomly([avgX],0.05)[0];
             avgY = disperseRandomly([avgY],0.05)[0];
             obj['x'] = avgX;
             obj['y'] = avgY;
+            obj['intfCnt'] = totatlIntfCnt;
             obj['size'] = filteredNodes.length;
             //  obj['children'] = children;
             obj['isBucket'] = true;
