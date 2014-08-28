@@ -2852,7 +2852,7 @@ function ManageCrossFilters(){
         }
         return null;
     }
-    
+
     this.getDimension = function(cfName,dimensionName){
         var cfObj = globalObj['crossFilters'][cfName];
         if(cfObj != null && cfObj.dimensions != null && cfObj.dimensions[dimensionName] != null){

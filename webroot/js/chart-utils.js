@@ -221,6 +221,31 @@
                          }
                      });
                  }
+                 /*
+                  * This function accepts the crossfilterName,parameter on which the crossfilter chart need to be constructed,
+                  * formatFn(if required) and filterDimension constructs the crossfilter chart and returns it 
+                  */
+                 function getCrossFilterCharts(cfName,key,formatFn,filterDimension) {
+                     manageCrossFilters.addDimension(cfName, key, formatFn);
+                     var dimension = manageCrossFilters.getDimension(cfName, key);
+                     if(dimension.top(1).length > 0 ) {
+                         maxValue = parseFloat(d3.max(dimension.group().all(),function(d) {return d['key']}));
+                         barHeight = d3.max(dimension.group().all(),function(d) {return d['value']});
+                     }
+                     var axisCFChart =  barChart()
+                                  .dimension(dimension)
+                                  .group(dimension.group())
+                                .x(d3.scale.linear()
+                                  .domain([0,(maxValue+(maxValue * 0.1))])//Added 1% buffer 
+                                  .rangeRound([0, 300]))
+                                .y(d3.scale.linear()
+                                   .domain([0,barHeight])
+                                   .range([30,0]));
+                     return axisCFChart;
+                 }
+                 /*
+                  * This function constructs the dynamic axis in the chart settings
+                  */
                  function showAxisParams(settings) {
                      var selParent = $(selector).parent('div');
                      var doBucketize =  (!getCookie(DO_BUCKETIZE_COOKIE))? defaultBucketize : (getCookie(DO_BUCKETIZE_COOKIE) == 'yes')? true : false;
@@ -302,8 +327,10 @@
                          });
                          var chartObj = $.extend(true,{},data);
                          var updateChartParams = chartObj['chartOptions'];
-                         var chartData = d3.select($(selector).find('svg')[0]).datum(),values = [],defaultKeys = {},filterDimension;
-                         $.each(chartData,function(idx,data){
+                         //var chartData = d3.select($(selector).find('svg')[0]).datum(),values = [],defaultKeys = {},filterDimension;
+                         var origData = $(selector).data('origData'),values = [],defaultKeys = {},filterDimension,chartData;
+                         chartData = origData;
+                         $.each(chartData['d'],function(idx,data){
                              values = $.merge(values,data['values']); 
                          });
                          //var dataCrossFilter = crossfilter(values);
@@ -318,7 +345,7 @@
                                  dataTextField:"text",
                                  dataValueField:"value",
                                  change:function(e) {
-                                     var chartData = $(selector).data('origData')['d'];
+                                     var chartData = $(selector).data('origData')['d'],field,type,formatFn,dataType,lbl,key;
                                      var selValue = $(e['target']).data('contrailDropdown').getSelectedData()[0]['text'];
                                      updateChartParams['tooltipFn'] = tooltipFn;
                                      $.each(chartData,function(idx,dataItem){
@@ -330,39 +357,68 @@
                                                      * In case of single point (which mean only one bubble or main bubbles with same x and y value)
                                                      * minimum and maximum will be same so whole axis will have only two values so we are setting the domain.
                                                      */
-                                                    var formatFn;
-                                                    var field = axisType == 'x'? 'xField' : 'yField'
+                                                    field = axisType == 'x'? 'xField' : 'yField';
+                                                    type = obj['type'],dataType = obj['dataType'];
+                                                    lbl = obj['lbl'],key = obj['key'];
                                                     if(obj['formatFn'] != null) {
-                                                        value[field] = parseInt(obj['formatFn'](value[obj['key']]));
+                                                        value[field] = obj['key'];
+                                                        value[obj['key']] = parseInt(obj['formatFn'](value[obj['key']]));
                                                         formatFn = obj['formatFn'];
                                                     } else {
-                                                        if(obj['type'] != null) {
+                                                        if(type != null) {
                                                             updateChartParams[axisType+"LblFormat"] = d3.format('.02f');
-                                                            value[field] = parseFloat(value[obj['key']]);
+                                                            value[field] = obj['key'];
+                                                            value[obj['key']] = parseFloat(value[obj['key']]);
                                                             formatFn = d3.format('.02f');
                                                         } else {
                                                             updateChartParams[axisType+"LblFormat"] = d3.format('0d');
-                                                            value[field] = parseInt(value[obj['key']]);
+                                                            value[field] = obj['key'];
+                                                            value[obj['key']] = parseInt(value[obj['key']]);
                                                             formatFn = d3.format('0d');
                                                         }
                                                     }
-                                                    range = d3.extent(values,function(item){return item[field]});
-                                                    if(obj['type'] == null && range[1] == range[0]) {
-                                                        range[0] = (range[0] - range[0] * 0.05 < 0 ) ? 0 : Math.floor(range[0] - range[0] * 0.05);
-                                                        range[1] = Math.ceil(range[1] + range[1] * 0.05);
-                                                        updateChartParams[axisType+"Domain"] = [range[0],range[1]]; 
-                                                    } 
-                                                    if(obj['dataType'] == 'bytes') {
-                                                        var result = formatByteAxis(chartData);
-                                                        chartData = result['data'];
-                                                        updateChartParams[axisType+'Lbl'] = obj['lbl'] + result[axisType+'Lbl'];
-                                                    } else 
-                                                        updateChartParams[axisType+'Lbl'] = obj['lbl'];
-                                                    
                                                 }
                                              });
                                          }); 
                                      });
+                                     range = d3.extent(values,function(item){return item[axisType]});
+                                     if(type == null && range[1] == range[0]) {
+                                         range[0] = (range[0] - range[0] * 0.05 < 0 ) ? 0 : Math.floor(range[0] - range[0] * 0.05);
+                                         range[1] = Math.ceil(range[1] + range[1] * 0.05);
+                                         updateChartParams[axisType+"Domain"] = [range[0],range[1]]; 
+                                     } 
+                                     if(dataType == 'bytes') {
+                                         var result = formatByteAxis(chartData);
+                                         chartData = result['data'];
+                                         updateChartParams[axisType+'Lbl'] = lbl + result[axisType+'Lbl'];
+                                     } else 
+                                         updateChartParams[axisType+'Lbl'] = lbl;
+                                     if (dataCrossFilter != null) {
+                                         var selParamCfChart = [];
+                                         //we are deleting the html content because crossfilter is checking for global tag empty and stops 
+                                         //rendering again
+                                         $('#'+id+"_crossfilter").html('');
+                                         var selParamCfChartObj = getCrossFilterCharts(cfName,key,formatFn,filterDimension);
+                                         selParamCfChart.push(selParamCfChartObj);
+                                         var selParamCfCharts =  d3.selectAll('#'+id+"_crossfilter")
+                                                                   .data(selParamCfChart)
+                                                                   .each(function(currChart){
+                                                                       currChart.on('brush',function(){
+                                                                           var filteredData = filterDimension.top(Infinity);
+                                                                           chartObj['d'] = filteredData;
+                                                                           //$(selector).initScatterChart(chartObj);
+                                                                       }).on("brushend",function(){
+                                                                           var filteredData = filterDimension.top(Infinity);
+                                                                           if (chartObj['chartOptions']['dataSplitFn'] != null && 
+                                                                                   typeof chartObj['chartOptions']['dataSplitFn'] == 'function') {
+                                                                               chartObj['d'] = chartObj['chartOptions']['dataSplitFn'](filteredData);
+                                                                           } else 
+                                                                               chartObj['d'] = filteredData;
+                                                                           $(selector).initScatterChart(chartObj);
+                                                                       });
+                                                                   });
+                                         renderAll(selParamCfCharts);
+                                     }
                                      chartObj['d'] = chartData;
                                      chartObj['chartOptions'] = updateChartParams;
                                      $(selector).initScatterChart(chartObj);
@@ -393,41 +449,45 @@
                                  /*
                                   * Filter dimension to be used for data retrieval
                                   */
-                                 manageCrossFilters.addDimension(cfName, axisType);
                                  filterDimension = manageCrossFilters.getDimension(cfName,axisType);
                                  var dimension = manageCrossFilters.getDimension(cfName, defaultKeys[id]['key']);
-                                if(dimension.top(1).length > 0 ) {
-                                    maxValue = parseFloat(d3.max(dimension.group().all(),function(d) {return d['key']}));
-                                    barHeight = d3.max(dimension.group().all(),function(d) {return d['value']});
-                                }
-                                var axisCFChart =  barChart()
-                                             .dimension(dimension)
-                                             .group(dimension.group())
-                                           .x(d3.scale.linear()
-                                             .domain([0,(maxValue+(maxValue * 0.1))])//Added 1% buffer 
-                                             .rangeRound([0, 300]))
-                                           .y(d3.scale.linear()
-                                              .domain([0,barHeight])
-                                              .range([50,0]))
-                                cfCharts.push(axisCFChart);
+                                 if(dimension.top(1).length > 0 ) {
+                                     maxValue = parseFloat(d3.max(dimension.group().all(),function(d) {return d['key']}));
+                                     barHeight = d3.max(dimension.group().all(),function(d) {return d['value']});
+                                 }
+                                 var dataCrossFilterObj = getCrossFilterCharts(cfName,defaultKeys[id]['key'],formatFn,filterDimension);
+                                 $("#"+id+"_crossfilter").data('chartObj',dataCrossFilterObj);
+                                 $("#"+id+"_crossfilter").data('axis',axisType);
+                                 cfCharts.push(dataCrossFilterObj);
                              }
                          });
                          if(cfCharts.length > 0) {
                              var cfChart =  d3.selectAll('.chart')
                                               .data(cfCharts)
                                               .each(function(currChart){
-                                                currChart.on('brush',function(){
-                                                    var filteredData = filterDimension.top(Infinity);
-                                                    chartObj['d'] = filteredData;
-                                                    $(selector).initScatterChart(chartObj);
-                                                    //Need to discuss and uncomment it 
-                                                    //renderAll(cfChart);
-                                                }).on("brushend",function() {
-                                                    $(selector).initScatterChart(chartObj);
-                                                    //renderAll(cfChart);
-                                                })
-                            });
+                                                    currChart.on('brush',function(){
+                                                        //nothing to do for now
+                                                    }).on("brushend",function() {
+                                                        var filteredData = filterDimension.top(Infinity);
+                                                        if (chartObj['chartOptions']['dataSplitFn'] != null && 
+                                                                typeof chartObj['chartOptions']['dataSplitFn'] == 'function') {
+                                                            chartObj['d'] = chartObj['chartOptions']['dataSplitFn'](filteredData);
+                                                        } else 
+                                                            chartObj['d'] = filteredData;
+                                                        $(selector).initScatterChart(chartObj);
+                                                        //renderAll(cfChart);
+                                                    });
+                                              });
                             renderAll(cfChart);
+                            $('.reset').bind('click',function(){
+                               var cfDiv = $(this).closest('.chart');
+                               var cfObj = $(cfDiv).data('chartObj');
+                               var axis = $(cfDiv).data('axis');
+                               console.log(axis);
+                               //Need to reset the filter based on the axis
+                               cfObj.filter(null);
+                               renderAll(cfChart);
+                            });
                          }
                     }); 
                  }
@@ -455,7 +515,7 @@
             }
               var chartid = $(selector).attr('id');
               //Update the header if required with shown and total count
-              var totalCnt = $("#"+ chartid).data('origDataCount');;
+              var totalCnt = $("#"+ chartid).data('origDataCount');
               var filteredCnt = totalBucketizedNodes;
               
               updatevRouterLabel('vrouter-header',filteredCnt,totalCnt);
@@ -595,7 +655,6 @@
                     else
                         processDrillDownForNodes(e);
                 }
-                
                 $(window).off('resize.multiTooltip');
                 $(window).on('resize.multiTooltip',function(e){
                     nv.tooltip.cleanup();

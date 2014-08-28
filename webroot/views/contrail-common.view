@@ -554,7 +554,11 @@
                                      <label style="margin-bottom:0px;display:inline-block;font-size:11px;">{{this.lbl}} : </label><div id="{{this.id}}" style="font-size:11px;"></div>
                                 </div>
                                 <div style="display:inline-block;">
-                                    <div id="{{this.id}}_crossfilter" class="chart" style="width:320px;"></div>
+                                    <div id="{{this.id}}_crossfilter" class="chart" style="width:320px;">
+                                        <div class="title">
+                                            <span class="reset" style="display: none;">reset</span>
+                                        </div>
+                                    </div>
                                 </div>
                              </div>
                         {{/each}}
