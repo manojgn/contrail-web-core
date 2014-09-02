@@ -261,6 +261,14 @@ function getDefaultGridConfig() {
 	                        }
 	                        e.stopPropagation();
                         break;
+	                    case 'multiselect':
+	                        gridHeader.find('.link-multiselectbox').toggle();
+	                        gridHeader.find('.input-multiselectbox').toggle();
+	                        if(gridHeader.find('.input-multiselectbox').is(':visible')){
+	                        	gridHeader.find('.input-multiselectbox .input-icon').data('contrailCheckedMultiselect').open();
+	                        }
+	                        e.stopPropagation();
+                        break;
 	                    case 'refresh':
 	                    	gridContainer.find('.link-refreshable i').removeClass('icon-repeat').addClass('icon-spin icon-spinner');
                             gridContainer.data('contrailGrid').refreshData();
@@ -603,7 +611,7 @@ function getDefaultGridConfig() {
         function initOnClickDocument(containerIdentifier, callback) {
         	$(document).on('click',function (e) {
         		if(!$(e.target).closest(gridContainer.find(containerIdentifier)).length) {
-   			    	callback();
+   			    	callback(e);
    			    }
     		});
         };
@@ -717,7 +725,7 @@ function getDefaultGridConfig() {
             	
             });
             
-            initOnClickDocument('.input-searchbox',function(){
+            initOnClickDocument('.input-searchbox',function(e){
         	    if(gridContainer.find('.input-searchbox').is(":visible") && gridContainer.find('.input-searchbox').find('input').val() == '') {
                 	gridContainer.find('.input-searchbox').hide();
                 	gridContainer.find('.link-searchbox').show();
@@ -1012,6 +1020,8 @@ function getDefaultGridConfig() {
                         addGridHeaderAction(key, control, gridContainer);
                     } else if (control.type == 'dropdown') {
                         addGridHeaderActionDroplist(key, control, gridContainer);
+                    } else if (control.type == 'checked-multiselect') {
+                        addGridHeaderActionCheckedMultiselect(key, control, gridContainer);
                     }
                 });
             }
@@ -1045,6 +1055,31 @@ function getDefaultGridConfig() {
                 $(actionItem).on('click', function(){
                     actionItemConfig.onClick();
                 });
+            });
+        };
+        
+        function addGridHeaderActionCheckedMultiselect(key, actionConfig, gridContainer) {
+            var actions = actionConfig.actions,
+                actionId = gridContainer.prop('id') + '-header-action-' + key;
+            var actionsTemplate = '<div id="' + actionId + '" class="widget-toolbar pull-right"> \
+		            <a class="widget-toolbar-icon link-multiselectbox" data-action="multiselect"> \
+		            <i class="' + actionConfig.iconClass + '"></i> \
+		        </a> \
+		        <span class="input-multiselectbox hide"> \
+		            <span class="input-icon"> \
+		            	<i class="widget-toolbar-icon icon-filter"></i> \
+		            </span> \
+		        </span> \
+		    </div>';
+
+            $(actionsTemplate).appendTo('#' + gridContainer.prop('id') + '-header');
+            $('#' + actionId).find('.input-icon').contrailCheckedMultiselect(actionConfig.elementConfig);
+            
+            initOnClickDocument('.input-multiselectbox',function(e){
+            	if($(e.target).parents('.ui-multiselect-menu').length == 0 && gridContainer.find('.input-multiselectbox').is(":visible") && $('#' + actionId).find('.input-icon').data('contrailCheckedMultiselect').getChecked().length == 0) {
+   	            	gridContainer.find('.input-multiselectbox').hide();
+       	        	gridContainer.find('.link-multiselectbox').show();
+           		}
             });
         };
 
