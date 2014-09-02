@@ -1075,6 +1075,11 @@ function getDefaultGridConfig() {
             $(actionsTemplate).appendTo('#' + gridContainer.prop('id') + '-header');
             $('#' + actionId).find('.input-icon').contrailCheckedMultiselect(actionConfig.elementConfig);
             
+            if($('#' + actionId).find('.input-icon').data('contrailCheckedMultiselect').getChecked().length > 0){
+            	gridContainer.find('.input-multiselectbox').show();
+   	        	gridContainer.find('.link-multiselectbox').hide();
+   	        }
+            
             initOnClickDocument('.input-multiselectbox',function(e){
             	if($(e.target).parents('.ui-multiselect-menu').length == 0 && gridContainer.find('.input-multiselectbox').is(":visible") && $('#' + actionId).find('.input-icon').data('contrailCheckedMultiselect').getChecked().length == 0) {
    	            	gridContainer.find('.input-multiselectbox').hide();
