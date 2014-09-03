@@ -161,6 +161,7 @@ cp -af ./$THIRD_PARTY/moment-v2.6.0/moment.js webroot/assets/moment/moment.js
 rm -rf webroot/assets/backbone
 mkdir webroot/assets/backbone
 cp -af ./$THIRD_PARTY/backbone-min.js webroot/assets/backbone/backbone-min.js
+cp -af ./$THIRD_PARTY/backbone-min.map webroot/assets/backbone/backbone-min.map
 cp -af ./$THIRD_PARTY/knockback.min.js webroot/assets/backbone/knockback.min.js
 #End - Copy Backbone from $THIRD_PARTY
 
@@ -177,6 +178,7 @@ cp -af ./$THIRD_PARTY/text.js webroot/assets/requirejs/text.js
 rm -rf webroot/assets/underscore
 mkdir webroot/assets/underscore
 cp -af ./$THIRD_PARTY/underscore-min.js webroot/assets/underscore/underscore-min.js
+cp -af ./$THIRD_PARTY/underscore-min.map webroot/assets/underscore/underscore-min.map
 #End - Copy Underscore from $THIRD_PARTY
 
 #Start - Merging All JS files
