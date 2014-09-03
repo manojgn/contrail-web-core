@@ -439,10 +439,10 @@ function getDefaultGridConfig() {
 	                                    }
 	
 	                                    $(target).parents('.slick-row-master').after(' \
-	            	            				<div class="ui-widget-content slick-row slick-row-detail" data-id="' + $(target).parents('.slick-row-master').data('id') + '"> \
+	            	            				<div class="ui-widget-content slick-row slick-row-detail" data-id="' + $(target).parents('.slick-row-master').data('cgridid') + '"> \
 	            	            					<div class="slick-cell l' + cellSpaceColumn + ' r' + cellSpaceRow + '"> \
 	            		            					<div class="slick-row-detail-container"> \
-	            		            						<div class="slick-row-detail-template-' + $(target).parents('.slick-row-master').data('id') + '"></div> \
+	            		            						<div class="slick-row-detail-template-' + $(target).parents('.slick-row-master').data('cgrid') + '"></div> \
 	            	            						</div> \
 	            	            					</div> \
 	            	            				</div>');
@@ -454,7 +454,7 @@ function getDefaultGridConfig() {
 	                                		e['detailRow'] = $(target).parents('.slick-row-master').next().find('.slick-row-detail-container');
 	                                		gridOptions.detail.onInit(e,dc);
 	                                    }
-	                                	refreshDetailTemplateById($(target).parents('.slick-row-master').data('id'));
+	                                	refreshDetailTemplateById($(target).parents('.slick-row-master').data('cgrid'));
                                 	}
                                 	else{
                                 		$(target).parents('.slick-row-master').next('.slick-row-detail').show();
@@ -480,7 +480,7 @@ function getDefaultGridConfig() {
 	                gridColumns = columns;
 	                
 	                gridContainer.find('.slick-row-detail').live('click', function(){
-	                	var rowId = $(this).data('id');
+	                	var rowId = $(this).data('cgrid');
 	                	setTimeout(function(){
 	                	    if(gridContainer.data('contrailGrid') != null)
 	                	        gridContainer.data('contrailGrid').adjustDetailRowHeight(rowId);
@@ -841,7 +841,7 @@ function getDefaultGridConfig() {
                 adjustAllRowHeight: function() {
                 	var self = this;
                     gridContainer.find('.slick-row-master').each(function(){
-                    	self.adjustRowHeight($(this).data('id'));
+                    	self.adjustRowHeight($(this).data('cgrid'));
                     });
                 },
                 adjustRowHeight: function(rowId) {
@@ -928,11 +928,11 @@ function getDefaultGridConfig() {
                  */
                 refreshDetailView: function(refreshDetailTemplateFlag){
                 	gridContainer.find('.slick-row-detail').each(function(){
-                		if(gridContainer.find('.slick_row_' + $(this).data('id')).is(':visible')){
-                			gridContainer.find('.slick_row_' + $(this).data('id')).after($(this));
-                			gridContainer.find('.slick_row_' + $(this).data('id')).find('.toggleDetailIcon').addClass('icon-caret-down').removeClass('icon-caret-right');
+                		if(gridContainer.find('.slick_row_' + $(this).data('cgrid')).is(':visible')){
+                			gridContainer.find('.slick_row_' + $(this).data('cgrid')).after($(this));
+                			gridContainer.find('.slick_row_' + $(this).data('cgrid')).find('.toggleDetailIcon').addClass('icon-caret-down').removeClass('icon-caret-right');
                         	if(refreshDetailTemplateFlag){
-                        		refreshDetailTemplateById($(this).data('id'));
+                        		refreshDetailTemplateById($(this).data('cgrid'));
                         	}
                 		}
                 		else{
@@ -1387,8 +1387,8 @@ var ContrailDataView = function(dvConfig) {
         // Setting id for each data-item; Required to instantiate data-view.
         if (data.length > 0) {
             $.each(data, function (key, val) {
-                if(!contrail.checkIfExist(val.id)){
-                    data[key].id = 'id_' + (key + offset);
+                if(!contrail.checkIfExist(val.cgrid)){
+                    data[key].cgrid = 'id_' + (key + offset);
                 }
             });
             dis._idOffset += data.length;
