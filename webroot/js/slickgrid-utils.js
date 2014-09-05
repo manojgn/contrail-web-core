@@ -85,7 +85,7 @@ function getDefaultGridConfig() {
 
         var gridConfig = {}, defaultGridConfig = getDefaultGridConfig(),
         	grid = null, dataView = null, pager = null,
-        	gridDataSource, gridColumns, gridOptions,
+        	gridDataSource, gridColumns, gridSortColumns = [], gridOptions,
         	autoRefreshInterval = false, searchColumns = [],
             headerTemplate, remoteConfig = {}, ajaxConfig,
             dvConfig = null, gridContainer = this, 
@@ -109,6 +109,7 @@ function getDefaultGridConfig() {
             initDataView();
             dataView.setSearchFilter(searchColumns, searchFilter);
             dataView.setData(gridDataSource.data);
+            performSort(gridSortColumns);
             if(dataView.getLength() == 0){
                 emptyGridHandler();
             }
@@ -144,6 +145,7 @@ function getDefaultGridConfig() {
                             initDataView();
                             dataView.setSearchFilter(searchColumns, searchFilter);
                             dataView.setData(response);
+                            performSort(gridSortColumns);
                         },
                         refreshSuccessCallback: function (response, refreshDataOnly) {
                             if(response.length == 0){
@@ -153,6 +155,7 @@ function getDefaultGridConfig() {
                                 gridDataSource.events.onRequestSuccessCB(response);
                             }
                             dataView.setData(response);
+                            performSort(gridSortColumns);
                             if(gridConfig.header.defaultControls.refreshable){
                             	setTimeout(function(){
                             		gridContainer.find('.link-refreshable i').removeClass('icon-spin icon-spinner').addClass('icon-repeat');
@@ -180,6 +183,7 @@ function getDefaultGridConfig() {
             initContrailGrid(dataView);
             initDataView();
             dataView.setSearchFilter(searchColumns, searchFilter);
+            performSort(gridSortColumns);
             initClientSidePagination();
             initGridFooter();
             if(dataView.getLength() == 0){
@@ -315,10 +319,13 @@ function getDefaultGridConfig() {
                 	}
                 	
                 	// Setting sortable:true for columns wherever necessary
-                	if(gridOptions.sortable){
+                	if(gridOptions.sortable != false){
                 		if(!contrail.checkIfExist(val.sortable)){
                 			gridColumns[key].sortable = true;
                 		}
+                        if(contrail.checkIfExist(gridOptions.sortable.defaultSortCols) && contrail.checkIfExist(gridOptions.sortable.defaultSortCols[val.field])) {
+                            gridOptions.sortable.defaultSortCols[val.field].gridColumnKey = key;
+                        }
                     }
                 	else{
                 		gridColumns[key].sortable = false;
@@ -329,6 +336,14 @@ function getDefaultGridConfig() {
                 	}
                 	
                 });
+                if(contrail.checkIfExist(gridOptions.sortable.defaultSortCols)) {
+                    $.each(gridOptions.sortable.defaultSortCols, function (defaultSortColKey, defaultSortColValue) {
+                        gridSortColumns.push({
+                            sortAsc: defaultSortColValue.sortAsc,
+                            sortCol: gridColumns[defaultSortColValue.gridColumnKey]
+                        })
+                    });
+                }
             }
         };
 
@@ -684,27 +699,29 @@ function getDefaultGridConfig() {
         };
 
         function initClientSidePagination() {
-        	eventHandlerMap.grid['onSort'] = function (e, args) {
-        		var cols = args.sortCols;
-        		var comparer = function (dataRow1, dataRow2) {
-        			for (var i = 0, l = cols.length; i < l; i++) {
-        				var field = cols[i].sortCol.field;
-        				var sign = cols[i].sortAsc ? 1 : -1;
-        				var value1 = (contrail.checkIfExist(cols[i].sortCol.sortable.sortBy) && cols[i].sortCol.sortable.sortBy == 'formattedValue') ? cols[i].sortCol.formatter('','','','',dataRow1) : dataRow1[field], 
-        					value2 = (contrail.checkIfExist(cols[i].sortCol.sortable.sortBy) && cols[i].sortCol.sortable.sortBy == 'formattedValue') ? cols[i].sortCol.formatter('','','','',dataRow2) : dataRow2[field];
-        				var result = (value1 == value2 ? 0 : (value1 > value2 ? 1 : -1)) * sign;
-        				if (result != 0) {
-        					return result;
-        				}
-        			}
-        			return 0;
-        		};
-        		dataView.sort(comparer);
+            eventHandlerMap.grid['onSort'] = function (e, args) {
+                performSort(args.sortCols);
         	};
         	
         	grid['onSort'].subscribe(eventHandlerMap.grid['onSort']);
         	
             initSearchBox();
+        };
+
+        function performSort(cols) {
+            dataView.sort(function (dataRow1, dataRow2) {
+                for (var i = 0, l = cols.length; i < l; i++) {
+                    var field = cols[i].sortCol.field;
+                    var sign = cols[i].sortAsc ? 1 : -1;
+                    var value1 = (contrail.checkIfExist(cols[i].sortCol.sortable.sortBy) && cols[i].sortCol.sortable.sortBy == 'formattedValue') ? cols[i].sortCol.formatter('','','','',dataRow1) : dataRow1[field],
+                        value2 = (contrail.checkIfExist(cols[i].sortCol.sortable.sortBy) && cols[i].sortCol.sortable.sortBy == 'formattedValue') ? cols[i].sortCol.formatter('','','','',dataRow2) : dataRow2[field];
+                    var result = (value1 == value2 ? 0 : (value1 > value2 ? 1 : -1)) * sign;
+                    if (result != 0) {
+                        return result;
+                    }
+                }
+                return 0;
+            });
         };
 
         function initSearchBox() {
