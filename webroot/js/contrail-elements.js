@@ -676,105 +676,122 @@
             self.find('.multiselect-list').selectable();
         };
     };
-    
+
     $.fn.contrailCheckedMultiselect = function (config) {
-    	var self = this;
-    	if(contrail.checkIfExist(config.data)){
-			config.dataTextField = {dsVar: config.dataTextField, apiVar: 'text'};
-	        config.dataValueField = {dsVar: config.dataValueField, apiVar: 'id'};
-	    	config.data = formatData(config.data, config);
-    	}
-    	
-    	if(!contrail.checkIfExist(self.data('contrailCheckedMultiselect'))) {
-    		/*
-	    	 * Initializing default config and extending it
-	    	 */
-	    	var defaultConfig = {
-	    			dataTextField: 'text',
-	    			dataValueField: 'id',
-	    			//header: false,
-	    			minWidth: 'auto',
-	    			control: {
-	    				apply: {
-	    					click: function(self, checkedRows){
-	    					}
-	    				},
-	    				cancel: {
-	    					click: function(self, checkedRows){
-	    					}
-	    				}
-	    			},
-	    			selectedList: 3
-	    		},
-	    		defaultFilterConfig = {
-	    			label: false,
-	    		},
-	    		config = $.extend(true, defaultConfig, config),
-	    		template = null, preChecked = [];
-	    	
-	    	template = contrail.getTemplate4Id('checked-multiselect-optgroup-template');
-	    	$(self).append(template(config));
-	    	var multiselect = self.find('select').multiselect(config).multiselectfilter(defaultFilterConfig);
-	    	preChecked = self.find('select').multiselect('getChecked');
-	    	
-	    	/* 
-	    	 * Appending controls and related events
-	    	 */
-	    	$('.ui-multiselect-menu').find('input[type="checkbox"]').addClass('ace-input');
-	    	$('.ui-multiselect-menu').find('input[type="checkbox"]').next('span').addClass('ace-lbl');
-	    	
-	    	var applyBtn = $('<button class="btn btn-mini btn-primary pull-right ui-multiselect-control-apply">Apply</button>'),
-	    		cancelBtn = $('<button class="btn btn-mini pull-right ui-multiselect-control-cancel">Cancel</button>'),
-	    		msControls = $('<div class="row-fluid ui-multiselect-controls""></div>');
-	    	
-	    	msControls.append((config.control.apply) ? applyBtn : '')
-	    		.append((config.control.cancel) ? cancelBtn : '');
-	    	
-	    	if(contrail.checkIfFunction(config.control.apply.click)) {
-	    		applyBtn.on('click', function(){
-	    			var checkedRows = self.find('select').multiselect('getChecked')
-	    			config.control.apply.click(self, checkedRows);
-	    			self.find('select').multiselect('close');
-	    		})
-	    	}
-	    	if(contrail.checkIfFunction(config.control.cancel.click)) {
-	    		cancelBtn.on('click', function(){
-	    			var checkedRows = self.find('select').multiselect('getChecked')
-	    			config.control.cancel.click(self, checkedRows);
-	    			self.find('select').multiselect('close');
-	    		})
-	    	}
-	    	
-	    	$('.ui-multiselect-menu').append(msControls);
-	    	
-	    	self.data('contrailCheckedMultiselect', $.extend(true, getDefaultMultiselectMethods(), {
-	    		getPreChecked: function() {
-	    			return preChecked;
-	    		},
-	    		setChecked: function(checkedElements) {
-	    			this.uncheckAll();
-        			$.each(checkedElements, function(elementKey, elementValue){
-        				$(elementValue).click();
-        			});
-	    		}
-	    	}))
-    	}
-    	else{
-    		self.find('select').multiselect(config);
-    	}
-    	
-    	function getDefaultMultiselectMethods() {
-    		var methodObj = {},
-    			defaultMethods = ['open','refresh','uncheckAll','getChecked'];
-    		
-    		$.each(defaultMethods, function(defaultMethodKey, defaultMethodValue) {
-    			methodObj[defaultMethodValue] = function() {
-    				return self.find('select').multiselect(defaultMethodValue);
-    			};
-    		});
-    		
-    		return methodObj;
-    	}
+        var self = this,
+            parse = contrail.checkIfFunction(config.parse) ? config.parse: null;
+        config.dataTextField = {dsVar: config.dataTextField, apiVar: 'text'};
+        config.dataValueField = {dsVar: config.dataValueField, apiVar: 'id'};
+        if (contrail.checkIfExist(config.data)) {
+            config.data = formatData(config.data, config);
+        }
+
+        if (!contrail.checkIfExist(self.data('contrailCheckedMultiselect'))) {
+            /*
+             * Initializing default config and extending it
+             */
+            if(contrail.checkIfExist(config.dataSource)){
+                contrail.ajaxHandler(config.dataSource, null, successHandler, failureHandler);
+            }
+
+            function successHandler(response){
+                if(!contrail.checkIfExist(response)){
+                    throw "Error getting data from server";
+                }
+                var parsedData = (contrail.checkIfFunction(parse)) ? parse(response) : response,
+                    defaultConfig = {
+                        dataTextField : 'text',
+                        dataValueField: 'id',
+                        //header: false,
+                        minWidth: 'auto',
+                        control: {
+                            apply: {
+                                click: function (self, checkedRows) {
+                                }
+                            },
+                            cancel: {
+                                click: function (self, checkedRows) {
+                                }
+                            }
+                        },
+                        selectedList: 3
+                    },
+                    defaultFilterConfig = {
+                        label: false,
+                    },
+                    config = $.extend(true, defaultConfig, config),
+                    template = null, preChecked = [];
+
+                config.data = formatData(parsedData, config);
+                initCheckedMultiselect(config, defaultFilterConfig);
+            };
+            function failureHandler(){};
+
+            function initCheckedMultiselect (config, defaultFilterConfig) {
+                template = contrail.getTemplate4Id('checked-multiselect-optgroup-template');
+                $(self).append(template(config));
+
+                var multiselect = self.find('select').multiselect(config).multiselectfilter(defaultFilterConfig);
+                preChecked = self.find('select').multiselect('getChecked');
+                /*
+                 * Appending controls and related events
+                 */
+                $('.ui-multiselect-menu').find('input[type="checkbox"]').addClass('ace-input');
+                $('.ui-multiselect-menu').find('input[type="checkbox"]').next('span').addClass('ace-lbl');
+
+                var applyBtn = $('<button class="btn btn-mini btn-primary pull-right ui-multiselect-control-apply">Apply</button>'),
+                    cancelBtn = $('<button class="btn btn-mini pull-right ui-multiselect-control-cancel">Cancel</button>'),
+                    msControls = $('<div class="row-fluid ui-multiselect-controls""></div>');
+
+                msControls.append((config.control.apply) ? applyBtn : '')
+                    .append((config.control.cancel) ? cancelBtn : '');
+
+                if (contrail.checkIfFunction(config.control.apply.click)) {
+                    applyBtn.on('click', function () {
+                        var checkedRows = self.find('select').multiselect('getChecked')
+                        config.control.apply.click(self, checkedRows);
+                        self.find('select').multiselect('close');
+                    })
+                }
+                if (contrail.checkIfFunction(config.control.cancel.click)) {
+                    cancelBtn.on('click', function () {
+                        var checkedRows = self.find('select').multiselect('getChecked')
+                        config.control.cancel.click(self, checkedRows);
+                        self.find('select').multiselect('close');
+                    })
+                }
+
+                $('.ui-multiselect-menu').append(msControls);
+
+                self.data('contrailCheckedMultiselect', $.extend(true, getDefaultMultiselectMethods(), {
+                    getPreChecked: function () {
+                        return preChecked;
+                    },
+                    setChecked   : function (checkedElements) {
+                        this.uncheckAll();
+                        $.each(checkedElements, function (elementKey, elementValue) {
+                            $(elementValue).click();
+                        });
+                    }
+                }));
+            };
+        }
+        else {
+            self.find('select').multiselect(config);
+        }
+
+        function getDefaultMultiselectMethods () {
+            var methodObj = {},
+                defaultMethods = ['open', 'refresh', 'uncheckAll', 'getChecked'];
+
+            $.each(defaultMethods, function (defaultMethodKey, defaultMethodValue) {
+                methodObj[defaultMethodValue] = function () {
+                    return self.find('select').multiselect(defaultMethodValue);
+                };
+            });
+
+            return methodObj;
+        }
     };
     
     $.extend({
