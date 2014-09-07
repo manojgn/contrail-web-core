@@ -42,6 +42,7 @@ cp -af ./$THIRD_PARTY/nvd3/src/nv.d3.css webroot/assets/nvd3/css/
 #Start - Copy JQuery files from $THIRD_PARTY
 rm -rf webroot/assets/jquery
 mkdir -p webroot/assets/jquery/js
+mkdir -p webroot/assets/jquery/css
 cp -af ./$THIRD_PARTY/jquery.xml2json.js webroot/assets/jquery/js/
 cp -af ./$THIRD_PARTY/jquery.ui.touch-punch.min.js webroot/assets/jquery/js/
 cp -af ./$THIRD_PARTY/jquery.ba-bbq.min.js webroot/assets/jquery/js/
@@ -51,6 +52,9 @@ cp -af ./$THIRD_PARTY/jquery.dataTables.min.js webroot/assets/jquery/js/
 cp -af ./$THIRD_PARTY/jquery-1.8.3.min.js webroot/assets/jquery/js/
 cp -af ./$THIRD_PARTY/jquery-1.9.1.min.js webroot/assets/jquery/js/
 cp -af ./$THIRD_PARTY/jquery-validation-v1.11.1/jquery.validate.js webroot/assets/jquery/js/
+cp -af ./$THIRD_PARTY/jquery-steps-1.1.0/build/jquery.steps.min.js webroot/assets/jquery/js/
+cp -af ./$THIRD_PARTY/jquery-steps-1.1.0/demo/css/jquery.steps.css webroot/assets/jquery/css/
+
 #End - Copy JQuery files from $THIRD_PARTY
 
 #Start - Copy jquery-ui files from $THIRD_PARTY
