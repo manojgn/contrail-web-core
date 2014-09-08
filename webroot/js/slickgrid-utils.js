@@ -454,6 +454,7 @@ function getDefaultGridConfig() {
                                 	}
                                 	
                                     if(contrail.checkIfFunction(gridOptions.detail.onExpand)){
+                                        e['detailRow'] = $(target).parents('.slick-row-master').next().find('.slick-row-detail-container');
                                     	gridOptions.detail.onExpand(e,dc);
                                     }
                                     $(target).removeClass('icon-caret-right').addClass('icon-caret-down');

@@ -2675,6 +2675,17 @@ function prefixToNetMask(prefixLen) {
             binaryString += '0';
     }
     return v4.Address.fromHex(parseInt(binaryString,2).toString(16)).address;
+/***
+ *  Returns the list of keys from a hashmap whose value matches with the given value
+ ***/
+function getKeysForValue(obj, value) {
+  var all = [];
+  for (var name in obj) {
+    if (!Object.hasOwnProperty(name) && obj[name] === value) {
+      all.push(name);
+    }
+  }
+  return all;
 }
 function getIPforHostName(name,dataSourceName) {
    if(globalObj.dataSources != null && globalObj.dataSources[dataSourceName] != null 

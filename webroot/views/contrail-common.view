@@ -530,6 +530,77 @@
             {{/each}}
         </div>
     </div>
+<script type="text/x-handlebars-template" id="chart-settings">
+    <div class="chart-settings">
+        <div class="chart-settings-wrapper hide">
+            <div class="chart-settings-expand">
+                 
+                <div id="chart-settings-header" class='chart-settings-header'>
+                    <label style="display:inline-block">Options</label>
+                    <i class="icon-chevron-up"></i>
+                </div>
+                <div style="margin-left:10px;">
+                    <div class="color-selection">
+                        <label>Color:</label>
+                        <div class="circle red filled"></div>
+                        <div class="circle blue filled"></div>
+                        <div class="circle orange filled"></div>
+                        <div class="circle green filled"></div>
+                    </div>
+                    <div class="axis-params">
+                        {{# each this}}
+                            {{#IfCompare @index 0 operator='!='}}
+                                |
+                            {{/IfCompare}}
+                            <div style="display:inline-block;">
+                                <label class="chart-settings-label">{{this.lbl}} : </label><div id="{{this.id}}" style="font-size:11px;"></div>
+                            </div>
+                             
+                        {{/each}}
+                    </div>
+                    <div>
+                        <label class="chart-settings-label">Bucketize&nbsp;</label><input id="checkbox-bucketize"  type="checkbox" name="bucketize" value="bucketize" style="margin:0;"/>
+                        <label class="chart-settings-label">Level&nbsp;</label><input id="chartSettingsBucketLevel" style="height: 14px;width: 19px;font-size: 11px;" type="textbox" value="5"/>
+                   </div>
+               </div>
+            </div>
+            <!-- <div style="background-color: white;margin-left: 70px; margin-right: 20px;" class="upArrow">
+                <img src="/img/upArrow.png"></img>
+            </div> -->
+        </div>
+        <div class = "chart-settings-hide upArrow">
+            <div class="chart-settings-reset">
+               <!-- <div class="color-filter-settings-reset">
+                    <label class="chart-settings-label hyperlink-active">Color Filter</label>
+                    <a href="#" class="chart-settings-close" tabindex="-1"></a>
+                </div>
+                <div class="bucketize-reset">
+                    <label class="chart-settings-label hyperlink-active">Bucketize</label>
+                    <a href="#" class="chart-settings-close" tabindex="-1"></a>
+                </div> -->
+                <!--  <div class="dynamic-axis-settings-reset">
+                    <label hyperlink-active>Dynamic Axis</label>
+                    <a href="#" class="select2-search-choice-close" tabindex="-1"></a>
+                </div> -->
+               <!-- <div class="all-reset">
+                    <label hyperlink-active>Reset All</label>
+                    <a href="#" class="select2-search-choice-close" tabindex="-1"></a>
+                </div> -->
+            </div>
+            <label class="chart-settings-label hyperlink-active position-right" >Options</label> 
+            <!-- <i class="icon-gear position-right"></i> -->
+        </div>
+      <!-- <div class="chart-settings-hide">
+            <img src="/img/downArrow.png"></img>
+       </div> -->
+    </div>
+</div>
+</script>
+
+<script type="text/x-handlebars-template" id="chart-footer">
+    <div>
+        <label class="chart-settings-label position-right">Bucketize&nbsp;</label>
+    </div>
 </script>
 
 <!-- View Templates -->

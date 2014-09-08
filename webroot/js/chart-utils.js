@@ -1,7 +1,6 @@
 /*
  * Copyright (c) 2014 Juniper Networks, Inc. All rights reserved.
  */
-
 (function ($) {
     $.extend($.fn, {
         initMemCPUSparkLines: function(data, parser, propertyNames, slConfig) {
@@ -28,6 +27,8 @@
             chartHandler(url, "GET", null, null, 'parseTSChartData', "successHandlerTSChart", null, false, cbParams, 310000);
         },
         initScatterChart:function (data) {
+            var origData;
+            var currData = $.extend(true,{},data);
             var selector = $(this), toFormat = '',
                 chartOptions = ifNull(data['chartOptions'],{}), chart, yMaxMin, d;
             var hoveredOnTooltip,tooltipTimeoutId;
@@ -39,6 +40,75 @@
 
             var yDataType = ifNull(data['yDataType'], '');
 
+            var dataStack = [];
+            var totalBucketizedNodes = 0;
+            isBucketize = (chartOptions['isBucketize'])? true: false;
+            if(isBucketize){
+                var d;
+                var ret = $.extend(true,{},data);
+                var minMax = chartOptions.minMax;
+                var minMaxX,minMaxY;
+                var currLevel = chartOptions.currLevel;
+                //attach the original data to the chart div only if the chart is not already intialized
+                if (data['d'] != null) {
+                    d = data['d'];
+                    if(minMax == null){
+                        var combinedValues = [];
+                        $.each(d,function(idx,obj){
+                            combinedValues = combinedValues.concat(obj.values);
+                        });
+                        minMaxX = d3.extent(combinedValues,function(obj){
+                            return obj['x'];
+                        });
+                        minMaxY = d3.extent(combinedValues,function(obj){
+                            return obj['y'];
+                        });
+                    } else {
+                        minMaxX = minMax.minMaxX;
+                        minMaxY = minMax.minMaxY;
+                    }
+                    //Attach the parent minMax's to the div element to retrieve it for zoom out
+                    var parentMinMax = $(selector).data('parentMinMax');
+                    if(parentMinMax == null){
+                        parentMinMax = [];
+                    }
+                    var newParent = {minMaxX:minMaxX,minMaxY:minMaxY};
+                    if(parentMinMax.length > 0){
+                        //check if the last object is not the same as current and then add
+                        if(JSON.stringify(parentMinMax[parentMinMax.length-1]) === JSON.stringify(newParent)){
+                            parentMinMax.push(newParent);
+                        }
+                    } else {
+                        parentMinMax.push(newParent);
+                    } 
+                    $(selector).data('parentMinMax',parentMinMax);
+                    if(currLevel == null || currLevel < maxBucketizeLevel){
+                        for(var i = 0;i < d.length; i++ ) {
+                            var values = [];
+                            d[i]['values'] = bucketize(d[i]['values'],minMaxX,minMaxY); 
+                            var nodeCnt = d[i]['values'].length;
+                            $.each(d[i]['values'],function(j,obj){
+                                if(obj['isBucket']){
+                                    // add the count if its a bucket
+                                    totalBucketizedNodes += obj['size'];
+                                    if(d[i]['values'].length == 1 && obj['allSameValues']){
+                                        d[i]['values'] = disperseNodes(obj);
+                                    }
+                                } else {
+                                    // add 1 if its a single node
+                                    totalBucketizedNodes += 1;
+                                }
+                            });
+                        }
+                    } else {
+                        //Max level of bucketization has reached now just disperse the nodes randomly in space
+                        for(var i = 0;i < d.length; i++ ) {
+                            d[i]['values'] = filterAndDisperseNodes(d[i]['values'],minMaxX,minMaxY); 
+                        }
+                    }
+                    data['d'] = d;
+                }
+            }
             if ($.inArray(ifNull(data['title'], ''), ['vRouters', 'Analytic Nodes', 'Config Nodes', 'Control Nodes']) > -1) {
                 data['forceX'] = [0, 0.15];
                 xLblFormat = ifNull(data['xLblFormat'], d3.format('.02f'));
@@ -93,16 +163,17 @@
             }
             chartOptions['seriesMap'] = seriesType;
             var tooltipFn = chartOptions['tooltipFn'];
+            var bucketTooltipFn = chartOptions['bucketTooltipFn'];
             chartOptions['tooltipFn'] = function(e,x,y,chart) {
-                                            return scatterTooltipFn(e,x,y,chart,tooltipFn);
+                                            return scatterTooltipFn(e,x,y,chart,tooltipFn,bucketTooltipFn,selector);
                                         };
             if(chartOptions['multiTooltip']) {
                 chartOptions['tooltipFn'] = function(e,x,y,chart) {
-                    return scatterTooltipFn(e,x,y,chart,tooltipFn);
+                    return scatterTooltipFn(e,x,y,chart,tooltipFn,bucketTooltipFn,selector);
                 }
-                chartOptions['tooltipRenderedFn'] = function(tooltipContainer,e,chart) {
+                chartOptions['tooltipRenderedFn'] = function(tooltipContainer,e,chart,selector) {
                     if(e['point']['overlappedNodes'] != undefined && e['point']['overlappedNodes'].length >1) {
-                       var result = getMultiTooltipContent(e,tooltipFn,chart);
+                       var result = getMultiTooltipContent(e,tooltipFn,bucketTooltipFn,chart,selector);
                         //Need to remove
                         $.each(result['content'],function(idx,nodeObj) {
                             var key = nodeObj[0]['value'];
@@ -127,11 +198,98 @@
 
 
             chartOptions['elementClickFunction'] = function (e) {
-                if(typeof(chartOptions['clickFn']) == 'function')
+                if(e['point']['isBucket']){
+                    var chartid = $(selector).attr('id');
+                   // var data = e['point']['children'];
+                    var minMaxX = e['point']['minMaxX'];
+                    var minMaxY = e['point']['minMaxY'];
+                   /* var parentMinMax = $('#' + chartid).data('parentMinMax');
+                    if(parentMinMax == null){
+                        parentMinMax = [];
+                    }
+                    var newParent = {minMaxX:minMaxX,minMaxY:minMaxY};
+                    if(parentMinMax.length > 0){
+                        //check if the last object is not the same as current and then add
+                        if(JSON.stringify(parentMinMax[parentMinMax.length-1]) === JSON.stringify(newParent)){
+                            parentMinMax.push(newParent);
+                        }
+                    } else {
+                        parentMinMax.push(newParent);
+                    } 
+                    $("#"+ chartid).data('parentMinMax',parentMinMax);
+                    */
+                    //var datum = d3.select($('#vrouter-bubble svg')[0]).datum();
+                    //var data = datum[0].values;
+                    //var data = $.map(origData.d, function (obj) {
+                    //                return $.extend(true, {}, obj);
+                    //            });
+                    var origData = $("#"+ chartid).data('origData');
+                    var currLevel = origData['chartOptions']['currLevel'];
+                    if(currLevel != null){
+                        currLevel++;
+                    } else {
+                        currLevel = 1;//it is at first level now after the first click
+                    }
+                    origData['chartOptions']['currLevel'] = currLevel;
+                    //assign back with the updated current level
+                    $("#"+ chartid).data('origData',origData);
+                    
+                    var data = $.extend(true,{},origData);
+                    var minMax = {minMaxX:minMaxX,minMaxY:minMaxY};
+                    data.chartOptions['minMax'] = minMax;
+                    /*  var d = [];
+                    if (data != null) {
+                        var d = data['d'];
+                        for(var i = 0;i < d.length; i++ ) {
+                            var values = [];
+                            d[i]['values'] = bucketize(d[i]['values'],minMaxX,minMaxY); 
+                        }
+                        data['d'] = d;
+                    }*/
+                    $("#"+ chartid).initScatterChart(data);
+                } else if(typeof(chartOptions['clickFn']) == 'function') {
                     chartOptions['clickFn'](e['point']);
-                else
+                } else {
                     processDrillDownForNodes(e);
+                }
             };
+            
+            chartOptions['elementDblClickFunction'] = function (e) {
+                //alert('double clicked');
+                var parentMinMax = $(selector).data('parentMinMax');//get parentMinMax
+                var currMinMax,minMaxX,minMaxY;
+                if(parentMinMax != null){
+                    //parentMinMax.pop();
+                    currMinMax = parentMinMax.pop();
+                }
+                $(selector).data('parentMinMax',parentMinMax);//update it back
+                if(currMinMax != null){
+                    minMaxX = currMinMax['minMaxX'];
+                    minMaxY = currMinMax['minMaxY'];
+                }
+                var origData = $(selector).data('origData');
+                var data = $.extend(true,{},origData);
+                var currLevel = origData['chartOptions']['currLevel'];
+                if(currLevel != null && currLevel > 0){
+                    currLevel--;
+                } 
+                origData['chartOptions']['currLevel'] = currLevel;
+                //assign back with the updated current level
+                $("#"+ chartid).data('origData',origData); 
+                var minMax = {minMaxX:minMaxX,minMaxY:minMaxY};
+                data.chartOptions['minMax'] = minMax;
+                /*var d = [];
+                if (data != null) {
+                    var d = data['d'];
+                    for(var i = 0;i < d.length; i++ ) {
+                        var values = [];
+                        d[i]['values'] = bucketize(d[i]['values'],minMaxX,minMaxY); 
+                    }
+                    data['d'] = d;
+                }*/
+                $(selector).initScatterChart(data);
+            };
+            
             chartOptions['elementMouseoutFn'] = function (e) {
                 if(e['point']['overlappedNodes'] != undefined && e['point']['overlappedNodes'].length > 1) {
                     if(tooltipTimeoutId != undefined)
@@ -160,7 +318,156 @@
             chartOptions['deferredObj'] = data['deferredObj'];
             chartOptions['useVoronoi'] = false;
             initScatterBubbleChart(selector, d, chart, chartOptions);
-
+            if(!isScatterChartInitialized("#"+$(selector).attr('id'))) {
+                origData = currData;
+                 if(data['loadedDeferredObj'] != null)
+                     data['loadedDeferredObj'].fail(function(errObj){
+                         if(errObj['errTxt'] != null && errObj['errTxt'] != 'abort') { 
+                             showMessageInChart({selector:$(selector),chartObj:$(selector).data('chart'),xLbl:chartOptions['xLbl'],yLbl:chartOptions['yLbl'],
+                                 msg:'Error in fetching details',type:'bubblechart'});
+                         }
+                     });
+                 if(chartOptions['deferredObj'] != null && chartOptions['deferredObj'].state() == 'pending') {
+                     chartOptions['deferredObj'].done(function(){
+                         var settings = [];
+                         if(chartOptions['xAxisParams'] != null) { 
+                             settings.push({id:'xAxisParams',lbl:'X-Axis parameters'});
+                         }
+                         if(chartOptions['yAxisParams'] != null) {
+                             settings.push({id:'yAxisParams',lbl:'Y-Axis parameters'});
+                         }
+                         if(chartOptions['showSettings']) {
+                             $(selector).parent('div').prepend(contrail.getTemplate4Id('chart-settings')(settings));
+                             showAxisParams(settings);
+                         }
+                     });
+                 }
+                 function showAxisParams(settings) {
+                     var selParent = $(selector).parent('div');
+                     if(chartOptions['isBucketize']){
+                         $('#checkbox-bucketize').attr('checked','checked');
+                     }
+                     $('#checkbox-bucketize').change(function(e){
+                         if ($('#checkbox-bucketize').is(":checked")){
+                             if(chartOptions['isBucketize'] != true){
+                                 var chartObj = $(selector).data('origData');
+                                 chartOptions['isBucketize'] = true;
+                                 chartObj['chartOptions'] = chartOptions;
+                                 $(selector).initScatterChart(chartObj);
+                             }
+                         } else {
+                             var chartObj = $(selector).data('origData');
+                             chartOptions['isBucketize'] = false;
+                             chartObj['chartOptions'] = chartOptions;
+                             $(selector).initScatterChart(chartObj);
+                         }
+                     });
+                     $(selParent).find('div.chart-settings-hide label').bind('click',function(clickEvt){
+                         $('div.chart-settings-hide').addClass('hide');
+                         $('div.chart-settings-wrapper').removeClass('hide');
+                         $(selParent).find('div.chart-settings-wrapper').removeClass('hide');
+                         $(selParent).find('div i').on('click',function(){
+                             $('div.chart-settings-wrapper').addClass('hide');
+                             $('div.chart-settings-hide').removeClass('hide');
+                         });
+                         var chartObj = $.extend(true,{},data);
+                         var updateChartParams = chartObj['chartOptions'];
+                         $.each(settings,function(idx,setVal){
+                             var id = setVal['id'],data = [];
+                             var axisType = id.indexOf('xAxis') > -1 ? 'x' : 'y';
+                             $("#"+id).contrailDropdown({
+                                 dataTextField:"text",
+                                 dataValueField:"value",
+                                 change:function(e){
+                                     //var chartData = d3.select($(selector).find('svg')[0]).datum();
+                                     var chartData = $(selector).data('origData')['d'];
+                                     var selValue = $(e['target']).data('contrailDropdown').getSelectedData()[0]['text'];
+                                     updateChartParams['tooltipFn'] = tooltipFn;
+                                     $.each(chartData,function(idx,dataItem){
+                                         $.each(dataItem['values'],function(sIdx,value){
+                                             $.each(chartOptions[id],function(index,obj){
+                                                if(obj['lbl'] == selValue) {
+                                                    var values = [],range = [];
+                                                    $.each(chartData,function(idx,data){
+                                                       values = $.merge(values,data['values']); 
+                                                    });
+                                                     /* here if type is null, considering it as default data type integer
+                                                     * In case of single point (which mean only one bubble or main bubbles with same x and y value)
+                                                     * minimum and maximum will be same so whole axis will have only two values so we are setting the domain.
+                                                     */
+                                                    if(obj['formatFn'] != null) {
+                                                        value[axisType] = parseInt(obj['formatFn'](value[obj['key']]));
+                                                    } else {
+                                                        if(obj['type'] != null) {
+                                                            updateChartParams[axisType+"LblFormat"] = d3.format('.02f');
+                                                            value[axisType] = parseFloat(value[obj['key']]);
+                                                        } else {
+                                                            updateChartParams[axisType+"LblFormat"] = d3.format('0d');
+                                                            value[axisType] = parseInt(value[obj['key']]);
+                                                        }
+                                                    }
+                                                    range = d3.extent(values,function(item){return item[axisType]});
+                                                    if(obj['type'] == null && range[1] == range[0]) {
+                                                        range[0] = (range[0] - range[0] * 0.05 < 0 ) ? 0 : Math.floor(range[0] - range[0] * 0.05);
+                                                        range[1] = Math.ceil(range[1] + range[1] * 0.05);
+                                                        updateChartParams[axisType+"Domain"] = [range[0],range[1]]; 
+                                                    } 
+                                                    if(obj['dataType'] == 'bytes') {
+                                                        var result = formatByteAxis(chartData);
+                                                        chartData = result['data'];
+                                                        updateChartParams[axisType+'Lbl'] = obj['lbl'] + result[axisType+'Lbl'];
+                                                    } else 
+                                                        updateChartParams[axisType+'Lbl'] = obj['lbl'];
+                                                    
+                                                }
+                                             });
+                                         }); 
+                                     });
+                                     chartObj['d'] = chartData;
+                                     chartObj['chartOptions'] = updateChartParams;
+                                     $(selector).initScatterChart(chartObj);
+                                 }
+                             });
+                             $.each(chartOptions[id],function(idx,obj){
+                                 var obj = {
+                                         id:obj['lbl'],
+                                         text:obj['lbl'],
+                                         value:obj['lbl']
+                                 };
+                                 data.push(obj);
+                             });
+                             $("#"+id).data('contrailDropdown').setData(data);
+                         })  
+                     }); 
+                 }
+                initScatterBubbleChart(selector, d, chart, chartOptions);
+                var chartid = $(selector).attr('id');
+              //if(!isScatterChartInitialized("#"+$(selector).attr('id'))){
+                
+                var d = origData['d'];
+                var totalNodesCnt = 0;
+                if(d!= null && d instanceof Array){
+                    $.each(d,function(i,obj){
+                       totalNodesCnt += obj['values'].length; 
+                    });
+                }
+                $("#"+ chartid).data('origData',origData);
+                $("#"+ chartid).data('origDataCount',totalNodesCnt);
+            //}
+            } else {
+                 chart = $(selector).data('chart');
+                 var svg = $(selector).find('svg')[0];
+                 chart = setChartOptions(chart,chartOptions);
+                 d3.select(svg).datum(d);
+                 if(chart.update != null)
+                     chart.update();
+            }
+              var chartid = $(selector).attr('id');
+              //Update the header if required with shown and total count
+              var totalCnt = $("#"+ chartid).data('origDataCount');;
+              var filteredCnt = totalBucketizedNodes;
+              
+              updatevRouterLabel('vrouter-header',filteredCnt,totalCnt);
             if(data['widgetBoxId'] != null)
                 endWidgetLoading(data['widgetBoxId']);
 
@@ -297,6 +604,7 @@
                     else
                         processDrillDownForNodes(e);
                 }
+                
                 $(window).off('resize.multiTooltip');
                 $(window).on('resize.multiTooltip',function(e){
                     nv.tooltip.cleanup();
@@ -309,8 +617,8 @@
 /**
  * TooltipFn for scatter chart
  */
-function scatterTooltipFn(e,x,y,chart,tooltipFormatFn) {
-    e['point']['overlappedNodes'] = markOverlappedBubblesOnHover(e,chart).reverse();
+function scatterTooltipFn(e,x,y,chart,tooltipFormatFn,bucketTooltipFn,selector) {
+    e['point']['overlappedNodes'] = markOverlappedOrBucketizedBubblesOnHover(e,chart,selector).reverse();
     var tooltipContents = [];
     if(e['point']['overlappedNodes'] == undefined || e['point']['overlappedNodes'].length <= 1) {
         if(typeof(tooltipFormatFn) == 'function') {
@@ -323,16 +631,27 @@ function scatterTooltipFn(e,x,y,chart,tooltipFormatFn) {
         });
         return formatLblValueTooltip(tooltipContents);
     } else if(e['point']['multiTooltip'] == true) {
-        result = getMultiTooltipContent(e,tooltipFormatFn,chart);
-        $.each(result['content'],function(idx,nodeObj) {
-            var key = nodeObj[0]['value'];
-            $.each(ifNull(result['nodeMap'][key]['point']['alerts'],[]),function(idx,obj) {
+        if(e['point']['isBucket']){
+            if(typeof(bucketTooltipFn) == "function"){
+                tooltipContents = bucketTooltipFn(e['point']);
+            }
+            $.each(ifNull(e['point']['alerts'],[]),function(idx,obj) {
                 if(obj['tooltipAlert'] != false)
-                    nodeObj.push({lbl:ifNull(obj['tooltipLbl'],'Events'),value:obj['msg']});
+                    tooltipContents.push({lbl:ifNull(obj['tooltipLbl'],'Events'),value:obj['msg']});
             });
-        });
-        result['content'] = result['content'].slice(0,result['perPage']);
-        return formatLblValueMultiTooltip(result);
+            return formatLblValueTooltip(tooltipContents);
+        } else {
+            result = getMultiTooltipContent(e,tooltipFormatFn,bucketTooltipFn,chart,selector);
+            $.each(result['content'],function(idx,nodeObj) {
+                var key = nodeObj[0]['value'];
+                $.each(ifNull(result['nodeMap'][key]['point']['alerts'],[]),function(idx,obj) {
+                    if(obj['tooltipAlert'] != false)
+                        nodeObj.push({lbl:ifNull(obj['tooltipLbl'],'Events'),value:obj['msg']});
+                });
+            });
+            result['content'] = result['content'].slice(0,result['perPage']);
+            return formatLblValueMultiTooltip(result);
+        }
     }
 }
 
@@ -374,6 +693,189 @@ function scatterOverlapBubbles (data){
     data[0]['values'] = bubbles;
     return data;	
 }
+/*
+function bucketize(data,minMaxX,minMaxY){
+    var d;
+    var ret = $.extend(true,{},data);
+    ret['parent'] = data;
+    if (data['d'] != null)
+        d = data['d'];
+    for(var i = 0;i < d.length; i++ ) {
+        var values = [];
+        d[i]['values'] = putInBuckets(d[i]['values'],data,minMaxX,minMaxY); 
+    }
+    ret['d'] = d;
+    return ret;
+}*/
+function bucketize(d,minMaxX,minMaxY,origData){
+    //find the min and max and decide the bucket values for both x and y
+    var xTotal = 0;
+    var yTotal = 0;
+    var BUCKET_SIZE = 7;
+    var xBucket = new Array(BUCKET_SIZE);
+    var yBucket = new Array(BUCKET_SIZE);
+    var finalBucket = [];
+    var ret = [];
+    var avgX,avgY;
+    $.each(xBucket,function(i,d){
+        xBucket[i] = [];
+    });
+    $.each(yBucket,function(i,d){
+        yBucket[i] = [];
+    });
+    if(minMaxX == null){
+        minMaxX = d3.extent(d,function(obj){
+            return obj['x'];
+        });
+    }
+    if(minMaxY == null){
+        minMaxY = d3.extent(d,function(obj){
+            return obj['y'];
+        });
+    }
+    //If only one node normalize to get the bubble in the range
+    if(minMaxX[0] == minMaxX[1]){
+        minMaxX = [minMaxX[0] * .9, minMaxX[0] * 1.1];
+    }
+    if(minMaxY[0] == minMaxY[1]){
+        minMaxY = [minMaxY[0] * .9, minMaxY[0] * 1.1];
+    }
+    avgX = (minMaxX[1] - minMaxX[0]) / BUCKET_SIZE;
+    avgY = (minMaxY[1] - minMaxY[0]) / BUCKET_SIZE;
+    //Start putting them in buckets
+    var xStops = [],yStops = [];
+    //Adding 1 to max value to pull in the last value in range
+    xStops = d3.range(minMaxX[0],minMaxX[1]+avgX,avgX);
+    yStops = d3.range(minMaxY[0],minMaxY[1]+avgY,avgY);
+    var dataCF = crossfilter(d);
+    var xDimension = dataCF.dimension(function(d) { return d.x; });
+    var yDimension = dataCF.dimension(function(d) { return d.y; });
+    var thirdDimension = dataCF.dimension(function(d) { return d.x; });
+    for(var i = 0 ; i < BUCKET_SIZE ; i++){
+        for(var j = 0; j < BUCKET_SIZE ;j++){
+            var minMaxXStops = [xStops[i], xStops[i + 1]];
+            var minMaxYStops = [yStops[j], yStops[j + 1]];
+            var filteredNodes = fetchNodesBetweenXAndYRange(dataCF, 
+                                                            xDimension,
+                                                            yDimension, 
+                                                            thirdDimension, 
+                                                            minMaxXStops, 
+                                                            minMaxYStops
+                                                            );
+            if(filteredNodes.length > 0){
+                var mergedNode = mergeBucketIntoSingleNode(filteredNodes,minMaxXStops,minMaxYStops,minMaxX,minMaxY);
+                //check if all the nodes in the filteredNodes is having same x,y values and mark them 
+                var nodeX,nodeY;
+                mergedNode['allSameValues'] = true
+                $.each(filteredNodes,function(i,obj){
+                    if(i==0){
+                        nodeX = obj.x;
+                        nodeY = obj.y;
+                    } else {
+                        if (!(nodeX == obj.x && nodeY == obj.y)){
+                            mergedNode['allSameValues'] = false;
+                        }
+                    }
+                });
+                finalBucket.push(mergedNode);
+            }
+        }
+    }
+    //bucketize x axis
+//    $.each(d,function(idx,obj){
+//        for(var i=0; i<BUCKET_SIZE; i++){
+//            if((obj['x'] >= xStops[i]) && (obj['x'] <= xStops[i+1])){
+//                xBucket[i].push(obj);
+//                break;
+//            }
+//        }
+//    });
+//    //bucketize y axis
+//    $.each(xBucket,function(idx,arrX){
+//        yBucket = new Array(BUCKET_SIZE);
+//        $.each(yBucket,function(i,d){
+//            yBucket[i] = [];
+//        });
+//        $.each(arrX,function(index,obj){
+//           for(var i=0; i<BUCKET_SIZE; i++){
+//               if((obj['y'] >= yStops[i]) && (obj['y'] <= yStops[i+1])){
+//                   yBucket[i].push(obj);
+//               }
+//           }
+//        });
+//        $.each(yBucket,function(j,arrY){
+//            if(arrY.length > 0){
+//                 finalBucket.push(arrY);
+//            }
+//        });
+//    });
+  /*  var nest = d3.nest()
+    .key(function(obj) { return obj['x']; })
+    .key(function(obj) { return obj['y']; })
+    .entries(d);
+    var nest = d3.nest()
+    .key(function(obj) { return ((obj['x'] > xStops[0]) && (obj['x'] < xStops[1]))?'x1':null; })
+    .key(function(obj) { return ((obj['y'] > yStops[0]) && (obj['y'] < yStops[1]))?'y1':null; })
+    .entries(d);*/
+    //ret = mergeBucketIntoSingleNode(finalBucket,origData);
+    return finalBucket;
+}
+function mergeBucketIntoSingleNode(filteredNodes,minMaxX,minMaxY,parentMinMaxX,parentMinMaxY){
+   // $.each(filteredNodes,function(idx,arr){
+        var avgX,avgY;
+        var sumX = sumY = 0;
+        var children = filteredNodes;
+        var obj = {};
+        obj['color'] = filteredNodes[0].color;
+        /*$.each(filteredNodes,function(i,node){
+            if(node['color'] == d3Colors['red']){
+                obj['color'] = d3Colors['red'];
+            } else if ((obj['color']  != d3Colors['red']) && (node['color'] == d3Colors['orange'])) {
+                obj['color'] = d3Colors['orange'];
+            }
+            sumX += node['x'];
+            sumY += node['y'];
+        });
+        avgX = sumX / filteredNodes.length;
+        avgY = sumY / filteredNodes.length;*/
+        if(filteredNodes.length > 1){
+            avgX = d3.mean(filteredNodes,function(d){return d.x});
+            avgY = d3.mean(filteredNodes,function(d){return d.y});
+            //this is to deviate a little bit from the middle
+            avgX = disperseRandomly([avgX],0.05)[0];
+            avgY = disperseRandomly([avgY],0.05)[0];
+            obj['x'] = avgX;
+            obj['y'] = avgY;
+            obj['size'] = filteredNodes.length;
+            //  obj['children'] = children;
+            obj['isBucket'] = true;
+            obj['clickFn'] = 'processBucket';
+            obj['minMaxX'] = minMaxX;
+            obj['minMaxY'] = minMaxY;
+            obj['children'] = children;
+        } else {
+            obj = filteredNodes[0];
+            obj['isBucket'] = false;
+            obj['minMaxX'] = minMaxX;
+            obj['minMaxY'] = minMaxY;
+        }
+        
+//        obj['parentMinMaxX'] = parentMinMaxX;
+//        obj['parentMinMaxY'] = parentMinMaxY;
+        //finalBucket[idx] = obj;
+   // });
+    return obj;
+}
+
+function fetchNodesBetweenXAndYRange(dataCF,xDimension,yDimension,thirdDimension,xMinMax,yMinMax){
+    var filterByX = xDimension.filter(xMinMax);
+    var filterByY = yDimension.filter(yMinMax);
+    
+    var t = thirdDimension.top(Infinity);
+    xDimension.filterAll();
+    yDimension.filterAll();
+    return t;
+}
 /**
  * function checks for the overlapped points in the total data and returns 
  */
@@ -401,6 +903,66 @@ function markOverlappedBubblesOnHover (e,chart){
     return overlappedNodes;
 }
 
+/**
+ * function checks for the overlapped points in the total data and returns 
+ */
+function markOverlappedOrBucketizedBubblesOnHover (e,chart,selector){
+    if(e['point']['isBucket']){
+        /* TODO alternate logic which takes the minmax and derives the nodes in that point 
+         * Use this if any problem with the other logic.
+         */
+        /*var bucketizedNodes =[];
+        var data = $(selector).data('origData');
+        var minMaxX = e['point']['minMaxX'];
+        var minMaxY = e['point']['minMaxY'];
+        if (data != null) {
+            var d = data['d'];
+            for(var i = 0;i < d.length; i++ ) {
+                var values = [];
+                //bucketizedNodes.concat(bucketize(d[i]['values'],minMaxX,minMaxY));
+                var dataCF = crossfilter(d[i]['values']);
+                var xDimension = dataCF.dimension(function(d) { return d.x; });
+                var yDimension = dataCF.dimension(function(d) { return d.y; });
+                var thirdDimension = dataCF.dimension(function(d) { return d.x; });
+                bucketizedNodes = bucketizedNodes.concat(fetchNodesBetweenXAndYRange(dataCF, 
+                                                                    xDimension,
+                                                                    yDimension, 
+                                                                    thirdDimension, 
+                                                                    minMaxX, 
+                                                                    minMaxY
+                                                                    ));
+            }
+        }*/
+        var bucketizedNodes = [];
+        if(e['point'] != null && e['point']['children'] != null){
+            bucketizedNodes = e['point']['children'];
+        }
+        return bucketizedNodes;
+    } else {
+        var totalSeries = [],data = e['series'],xDiff,yDiff;
+        xDiff = chart.xAxis.domain()[1] - chart.xAxis.domain()[0];
+        yDiff = chart.yAxis.domain()[1] - chart.yAxis.domain()[0];
+        for(var i = 0;i<data.length; i++){
+            $.merge(totalSeries,data[i]['values']);
+        }
+        var x = e['point']['x'];
+        var y = e['point']['y'];
+        var buffer = 1.5;//In percent
+        var overlappedNodes = [];
+        $.each(totalSeries,function(idx,obj) {
+            if((Math.abs(x-obj['x'])/xDiff) * 100 <= buffer && 
+                (Math.abs(y-obj['y'])/yDiff) * 100 <= buffer) {
+                overlappedNodes.push({name:obj['name'],type:obj['type']});
+            } else if (isNaN(x) && isNaN(y) && isNaN(obj['x']) && isNaN(obj['y'])) {
+                overlappedNodes.push({name:obj['name'],type:obj['type']});
+            } else if (x == 0 && y == 0 && obj['x'] == 0 && obj['y'] == 0) {
+                overlappedNodes.push({name:obj['name'],type:obj['type']});
+            }
+        });
+        return overlappedNodes;
+    }
+}
+
 function isScatterChartInitialized(selector) {
    if($(selector + ' > svg').length > 0)
       return true;
@@ -416,7 +978,7 @@ function isScatterChartInitialized(selector) {
  * @param chart
  * @returns result
  */
-function getMultiTooltipContent(e,tooltipFn,chart) {
+function getMultiTooltipContent(e,tooltipFn,bucketTooltipFn,chart,selector) {
     var tooltipArray = [],result = {},nodeMap = {};
     var perPage = 1;
     var overlappedNodes = e['point']['overlappedNodes'];
@@ -432,9 +994,32 @@ function getMultiTooltipContent(e,tooltipFn,chart) {
         if(!isEmptyObject(data)) {
             //data['point'] = data[0];
             tooltipArray.push(tooltipFn(data[0]));
-            //Creates a hashMap based on first key/value in tooltipContent
-            nodeMap[tooltipFn(data[0])[0]['value']] = {point:data[0]};
+    var origData = $(selector).data('origData');
+    if(!e.point.isBucket){
+        for(var i = 0;i < overlappedNodes.length; i++){
+            var data = $.grep(series,function(obj,idx) {
+                return (obj['name'] == overlappedNodes[i]['name'] && obj['type'] == overlappedNodes[i]['type'] && 
+                        !chart.state()['disabled'][chart.seriesMap()[obj['type']]]);
+            });
+            
+            if(!isEmptyObject(data)) {
+                //data['point'] = data[0];
+                tooltipArray.push(tooltipFn(data[0],null,null));
+                //Creates a hashMap based on first key/value in tooltipContent
+                nodeMap[tooltipFn(data[0])[0]['value']] = {point:data[0]};
+            }
         }
+    } else {
+/* Use this if you want to display all the nodes
+ *         for(var i = 0;i < overlappedNodes.length; i++){
+            tooltipArray.push(tooltipFn(overlappedNodes[i],null,null));
+            //Creates a hashMap based on first key/value in tooltipContent
+            nodeMap[tooltipFn(overlappedNodes[i])[0]['value']] = {point:overlappedNodes[i]};
+        }
+        */
+        tooltipArray.push(bucketTooltipFn(e['point'],null,null));
+        //Creates a hashMap based on first key/value in tooltipContent
+        nodeMap[bucketTooltipFn(e['point'])[0]['value']] = {point:e['point']};
     }
     result['content'] = tooltipArray;
     result['nodeMap'] = nodeMap;
@@ -445,6 +1030,10 @@ function getMultiTooltipContent(e,tooltipFn,chart) {
     else if(result['perPage'] == 1)
         result['pagestr']  = 1+" / "+result['content'].length ;
     return result;
+}
+
+function getBucketTooltipContent(e,tooltipFn,chart,selector){
+    
 }
 
 function getOverlappedBubbles(e) {
@@ -962,3 +1551,31 @@ function formatByteAxis(data) {
     }
     return {data:data,yLbl:yLbl};
 }
+
+/****
+ * Selection handler for color filter in chart settings panel
+ ****/
+$('body').on('click','.color-selection .circle',function() {
+    //Get the chart handle
+    var svgParent = $($(this)).closest('.chart-settings').parent().find('.nv-scatterChart').closest('div');
+    var chart = $(svgParent).data('chart');
+    var svgElem = d3.select($(svgParent).find('svg')[0]);
+    var data = svgElem.datum();
+    var currElem = $(this);
+
+    data = $.map(data,function(obj,idx) {
+        var selColor = getKeysForValue(d3Colors,obj['color'])[0];
+        if($(currElem).hasClass(selColor)) {
+            //Disable the series
+            if($(currElem).hasClass('filled')) {
+                obj.disabled = true;
+            } else
+                obj.disabled = false;
+        }
+        return obj;
+    });
+    //Set the new data
+    svgElem.datum(data); 
+    $(this).toggleClass('filled');
+    chart.update();
+});

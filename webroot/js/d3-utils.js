@@ -595,6 +595,7 @@ function initScatterBubbleChart(selector, data, chart, chartOptions) {
             .tooltipXContent(null)
             .tooltipYContent(null)
             .showTooltipLines(false)
+            .showLegend(false)
             .tooltipContent(chartOptions['tooltipFn']);
         
         if(chartOptions['tooltipRenderedFn'] != null)
@@ -620,7 +621,6 @@ function initScatterBubbleChart(selector, data, chart, chartOptions) {
         }
 
         $(selector).data('chart', chart);
-
         chart.xAxis.tickFormat(chartOptions['xLblFormat']);
         chart.yAxis.tickFormat(chartOptions['yLblFormat']);
         chart.xAxis.showMaxMin(false);
@@ -635,6 +635,7 @@ function initScatterBubbleChart(selector, data, chart, chartOptions) {
         chart.scatter.dispatch.on('elementClick', chartOptions['elementClickFunction']);
         chart.scatter.dispatch.on('elementMouseout',chartOptions['elementMouseoutFn']);
         chart.scatter.dispatch.on('elementMouseover',chartOptions['elementMouseoverFn']);
+        $(selector).on('dblclick',chartOptions['elementDblClickFunction']);
         if(!($(selector).is(':visible'))) {
             $(selector).find('svg').bind("refresh", function() {
                 d3.select($(selector)[0]).select('svg').datum(data).call(chart);
