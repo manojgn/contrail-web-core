@@ -87,6 +87,7 @@ function getDefaultGridConfig() {
         	grid = null, dataView = null, pager = null,
         	gridDataSource, gridColumns, gridSortColumns = [], gridOptions,
         	autoRefreshInterval = false, searchColumns = [],
+            currentSelectedRows = [],
             headerTemplate, remoteConfig = {}, ajaxConfig,
             dvConfig = null, gridContainer = this, 
             eventHandlerMap = {grid: {}, dataView: {}}, 
@@ -334,16 +335,7 @@ function getDefaultGridConfig() {
                 	if(!contrail.checkIfExist(gridColumns[key].id)){
                 		gridColumns[key].id = val.field + '_' + key;
                 	}
-                	
                 });
-                if(contrail.checkIfExist(gridOptions.sortable.defaultSortCols)) {
-                    $.each(gridOptions.sortable.defaultSortCols, function (defaultSortColKey, defaultSortColValue) {
-                        gridSortColumns.push({
-                            sortAsc: defaultSortColValue.sortAsc,
-                            sortCol: gridColumns[defaultSortColValue.gridColumnKey]
-                        })
-                    });
-                }
             }
         };
 
@@ -376,14 +368,14 @@ function getDefaultGridConfig() {
 	                        allow: false
 	                    }
 	                });
-	                
+
 	                var onNothingChecked = contrail.checkIfFunction(gridOptions.checkboxSelectable.onNothingChecked) ? gridOptions.checkboxSelectable.onNothingChecked : null,
 	                	onSomethingChecked = contrail.checkIfFunction(gridOptions.checkboxSelectable.onSomethingChecked) ? gridOptions.checkboxSelectable.onSomethingChecked : null,
 						onEverythingChecked = contrail.checkIfFunction(gridOptions.checkboxSelectable.onEverythingChecked) ? gridOptions.checkboxSelectable.onEverythingChecked : null;
-	                
+
 	                columns = columns.concat(gridColumns);
 	                gridColumns = columns;
-	
+
 	                gridContainer.find('.headerRowCheckbox').live('click', function(){
 	                    if($(this).attr('checked') == 'checked'){
 	                        gridContainer.find('.rowCheckbox').attr('checked',function(i,val){
@@ -399,18 +391,18 @@ function getDefaultGridConfig() {
 	                        (contrail.checkIfExist(onNothingChecked) ? onNothingChecked() : '');
 	                    }
 	                });
-	                
+
 	                gridContainer.find('.rowCheckbox').live('click', function(){
 	                    if($(this).attr('checked') != 'checked'){
 	                        gridContainer.find('.headerRowCheckbox').removeAttr('checked');
 	                    }
-	                    
+
 	                    var headerRowChecked = true, rowChecked = false;
                     	gridContainer.find('.rowCheckbox').each(function(key,val){
                     		headerRowChecked = headerRowChecked && (($(this).attr('checked') == 'checked') ? true : false);
                     		rowChecked = rowChecked || (($(this).attr('checked') == 'checked') ? true : false);
                     	});
-                    	
+
                     	if(headerRowChecked) {
                     		gridContainer.find('.headerRowCheckbox').attr('checked','checked');
                     		(contrail.checkIfExist(onSomethingChecked) ? onSomethingChecked() : '');
@@ -531,6 +523,15 @@ function getDefaultGridConfig() {
 	                columns = gridColumns.concat(columns);
 	                gridColumns = columns;
 	            }
+
+                if(contrail.checkIfExist(gridOptions.sortable.defaultSortCols)) {
+                    $.each(gridOptions.sortable.defaultSortCols, function (defaultSortColKey, defaultSortColValue) {
+                        gridSortColumns.push({
+                            sortAsc: defaultSortColValue.sortAsc,
+                            sortCol: gridColumns[defaultSortColValue.gridColumnKey]
+                        })
+                    });
+                }
         	}
         };
         
@@ -622,7 +623,7 @@ function getDefaultGridConfig() {
             
             grid['onClick'].subscribe(eventHandlerMap.grid['onClick']);
         };
-        
+
         function initOnClickDocument(containerIdentifier, callback) {
         	$(document).on('click',function (e) {
         		if(!$(e.target).closest(gridContainer.find(containerIdentifier)).length) {
@@ -734,6 +735,7 @@ function getDefaultGridConfig() {
                             searchString: searchValue,
                             searchColumns: searchColumns
                         });
+                        dataView.setFilter(searchFilter);
                         dataView.refresh();
                         gridContainer.find('.slick-row-detail').remove();
                         gridContainer.find('.input-searchbox input').focus();
@@ -1355,7 +1357,7 @@ var ContrailDataView = function(dvConfig) {
         	this.beginUpdate();
         	var dis = this;
         	$.each(data, function(key,val){
-        		dis.updateItem(val.id,val);
+        		dis.updateItem(val.cgrid,val);
             });
         	this.endUpdate();
             onUpdateData.notify();

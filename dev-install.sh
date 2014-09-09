@@ -67,8 +67,8 @@ cp -af ./$THIRD_PARTY/jquery-ui-1.10.4/themes/base/images webroot/assets/jquery-
 #End - Copy jquery-ui files from $THIRD_PARTY
 
 #Start - Copy jquery-ui-multiselect files from $THIRD_PARTY
-cp -af ./$THIRD_PARTY/jquery-ui-multiselect-widget-1.13/src/jquery.multiselect.min.js webroot/assets/jquery-ui/js/jquery.multiselect.min.js
-cp -af ./$THIRD_PARTY/jquery-ui-multiselect-widget-1.13/jquery.multiselect.css webroot/assets/jquery-ui/css/jquery.multiselect.css
+cp -af ./$THIRD_PARTY/jquery-ui-multiselect-widget-1.13/src/jquery.multiselect.js webroot/assets/jquery-ui/js/jquery.multiselect.js
+cp -af ./$THIRD_PARTY/jquery-ui-multiselect-widget-1.13/src/jquery.multiselect.filter.js webroot/assets/jquery-ui/js/jquery.multiselect.filter.js
 #End - Copy jquery-ui-multiselect files from $THIRD_PARTY
 
 #Start - Copy Bootstrap from $THIRD_PARTY
