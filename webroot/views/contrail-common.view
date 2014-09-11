@@ -541,7 +541,7 @@
                 </div>
                 <div style="margin-left:10px;">
                     <div class="color-selection">
-                        <label>Color:</label>
+                        <label>Severity :</label>
                         <div class="circle red filled"></div>
                         <div class="circle blue filled"></div>
                         <div class="circle orange filled"></div>
@@ -560,7 +560,11 @@
                     </div>
                     <div>
                         <label class="chart-settings-label">Bucketize&nbsp;</label><input id="checkbox-bucketize"  type="checkbox" name="bucketize" value="bucketize" style="margin:0;"/>
-                        <label class="chart-settings-label">Level&nbsp;</label><input id="chartSettingsBucketLevel" style="height: 14px;width: 19px;font-size: 11px;" type="textbox" value="5"/>
+                        <div id="div-bucket-options" class="chart-sub-settings">
+                            <label class="chart-settings-label">Scatter Level :&nbsp;</label><input id="chartSettingsBucketMaxBucketizeLevel" style="height: 14px;width: 19px;font-size: 11px;" type="textbox" value="3"/>
+                            <label class="chart-settings-label">Buckets per axis :&nbsp;</label><input id="chartSettingsBucketPerAxis" style="height: 14px;width: 19px;font-size: 11px;" type="textbox" value="7"/>
+                            <button class="btnBucketSettingsApply btn btn-primary btn-minier">Apply</button> 
+                        </div>
                    </div>
                </div>
             </div>
@@ -570,24 +574,24 @@
         </div>
         <div class = "chart-settings-hide upArrow">
             <div class="chart-settings-reset">
-               <!-- <div class="color-filter-settings-reset">
-                    <label class="chart-settings-label hyperlink-active">Color Filter</label>
-                    <a href="#" class="chart-settings-close" tabindex="-1"></a>
+                <div class="color-filter-settings-reset">
+                    <label class="chart-settings-label hyperlink-active">Severity Filter</label>
+                    <a href="#" id="chart-settings-severity-filter-remove" class="chart-settings-close" tabindex="-1">x</a>
                 </div>
                 <div class="bucketize-reset">
                     <label class="chart-settings-label hyperlink-active">Bucketize</label>
-                    <a href="#" class="chart-settings-close" tabindex="-1"></a>
-                </div> -->
+                    <a href="#" id="chart-settings-bucketization-remove" class="chart-settings-close" tabindex="-1">x</a>
+                </div> 
                 <!--  <div class="dynamic-axis-settings-reset">
                     <label hyperlink-active>Dynamic Axis</label>
                     <a href="#" class="select2-search-choice-close" tabindex="-1"></a>
-                </div> -->
-               <!-- <div class="all-reset">
+                </div>
+                <div class="all-reset">
                     <label hyperlink-active>Reset All</label>
                     <a href="#" class="select2-search-choice-close" tabindex="-1"></a>
                 </div> -->
             </div>
-            <label class="chart-settings-label hyperlink-active position-right" >Options</label> 
+            <label class="chart-settings-label hyperlink-active position-right chart-setting-options underline" >Options</label> 
             <!-- <i class="icon-gear position-right"></i> -->
         </div>
       <!-- <div class="chart-settings-hide">
