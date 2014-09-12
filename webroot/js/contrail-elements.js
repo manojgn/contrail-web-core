@@ -501,6 +501,35 @@
         };
     };
 
+    $.fn.contrailWizard = function (config) {
+        var self = this,
+            steps = config.steps;
+
+        config.onStepChanged = function(event, currentIndex, priorIndex) {
+            if(currentIndex < priorIndex) {
+                self.find('.steps').find('li:eq(' + priorIndex + ')').removeClass('done');
+            }
+
+            if(contrail.checkIfFunction(steps[currentIndex].onLoad)) {
+                steps[currentIndex].onLoad();
+            }
+        };
+
+        config.onStepChanging = function (event, currentIndex, newIndex) {
+            if(currentIndex < newIndex && contrail.checkIfFunction(steps[currentIndex].onNext)) {
+                return steps[currentIndex].onNext();
+            }
+            else if(currentIndex > newIndex && contrail.checkIfFunction(steps[currentIndex].onPrevious)) {
+                return steps[currentIndex].onPrevious();
+            }
+            else {
+                return true;
+            }
+        };
+
+        self.steps(config);
+    };
+
     $.fn.contrailCheckedMultiselect = function (config) {
         var self = this,
             parse = contrail.checkIfFunction(config.parse) ? config.parse: null;
@@ -662,24 +691,28 @@
             modalId.find('.modal-header-title').empty().append(options.title != undefined ? options.title : '&nbsp;');
             modalId.find('.modal-body').empty().append(options.body);
 
-            $.each(options.footer, function (key, footerButton) {
-                var btnId = (footerButton.id != undefined && footerButton.id != '') ? footerButton.id : options.id + 'btn' + key,
-                    btn = '<button id="' + btnId + '" class="btn btn-mini ' + ((footerButton.className != undefined && footerButton.className != '') ? footerButton.className : '') + '"'
-                        + ((footerButton.onclick === 'close') ? ' data-dismiss="modal" aria-hidden="true"' : '') + '>'
-                        + ((footerButton.title != undefined) ? footerButton.title : '') + '</button>';
+            if(options.footer != false) {
+                $.each(options.footer, function (key, footerButton) {
+                    var btnId = (footerButton.id != undefined && footerButton.id != '') ? footerButton.id : options.id + 'btn' + key,
+                        btn = '<button id="' + btnId + '" class="btn btn-mini ' + ((footerButton.className != undefined && footerButton.className != '') ? footerButton.className : '') + '"'
+                            + ((footerButton.onclick === 'close') ? ' data-dismiss="modal" aria-hidden="true"' : '') + '>'
+                            + ((footerButton.title != undefined) ? footerButton.title : '') + '</button>';
 
-                modalId.find('.modal-footer').append(btn);
-                $('#' + btnId).on('click', function() {
-                    if (typeof footerButton.onclick === 'function') {
-                        footerButton.onclick(footerButton.onClickParams);
-                    }
-                    else if(footerButton.onclick != 'close' && typeof footerButton.onclick === 'string'){
-                        window[footerButton.onclick](footerButton.onClickParams);
-                    }
+                    modalId.find('.modal-footer').append(btn);
+                    $('#' + btnId).on('click', function () {
+                        if (typeof footerButton.onclick === 'function') {
+                            footerButton.onclick(footerButton.onClickParams);
+                        }
+                        else if (footerButton.onclick != 'close' && typeof footerButton.onclick === 'string') {
+                            window[footerButton.onclick](footerButton.onClickParams);
+                        }
+                    });
+
                 });
-
-            });
-
+            }
+            else {
+                modalId.find('.modal-footer').remove();
+            }
             modalId.modal({backdrop:'static', keyboard:false});
         }
     });
