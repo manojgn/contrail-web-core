@@ -243,6 +243,12 @@ MAINFILE[39]=webroot/js/analyzer-utils.js
 MAINFILE[40]=webroot/js/chart-utils.js
 MAINFILE[41]=webroot/js/dashboard-utils.js
 
+MAINFILE[42]=webroot/assets/jquery-ui/js/jquery.multiselect.js
+MAINFILE[43]=webroot/assets/jquery-ui/js/jquery.multiselect.filter.js
+MAINFILE[44]=webroot/assets/requirejs/require.js
+MAINFILE[45]=webroot/assets/jquery/js/jquery.steps.min.js
+
+
 cat ${MAINFILE[0]} > webroot/js/contrail-all-1.js
 cat ${MAINFILE[1]} >> webroot/js/contrail-all-1.js
 cat ${MAINFILE[2]} >> webroot/js/contrail-all-1.js
@@ -293,6 +299,11 @@ cat ${MAINFILE[38]} >> webroot/js/contrail-all-5.js
 cat ${MAINFILE[39]} >> webroot/js/contrail-all-5.js
 cat ${MAINFILE[41]} >> webroot/js/contrail-all-5.js
 
+cat ${MAINFILE[42]} >> webroot/js/contrail-all-6.js
+cat ${MAINFILE[43]} >> webroot/js/contrail-all-6.js
+cat ${MAINFILE[44]} >> webroot/js/contrail-all-6.js
+cat ${MAINFILE[45]} >> webroot/js/contrail-all-6.js
+
 # End - Merging All JS files
 
 #Start - Merging All CSS files
@@ -303,10 +314,12 @@ MAINCSS[2]=webroot/assets/nvd3/css/nv.d3.css
 MAINCSS[3]=webroot/assets/select2/styles/select2.css
 MAINCSS[4]=webroot/assets/datetimepicker/styles/jquery.datetimepicker.css
 MAINCSS[5]=webroot/assets/slickgrid/styles/slick.grid.css
+MAINCSS[6]=webroot/assets/jquery/css/jquery.steps.css
 
 cat ${MAINCSS[1]} > webroot/css/contrail-all.css
 cat ${MAINCSS[2]} >> webroot/css/contrail-all.css
 cat ${MAINCSS[3]} >> webroot/css/contrail-all.css
 cat ${MAINCSS[4]} >> webroot/css/contrail-all.css
 cat ${MAINCSS[5]} >> webroot/css/contrail-all.css
+cat ${MAINCSS[6]} >> webroot/css/contrail-all.css
 #End - Merging ALL CSS files
