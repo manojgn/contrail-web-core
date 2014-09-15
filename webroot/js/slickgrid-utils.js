@@ -494,9 +494,19 @@ function getDefaultGridConfig() {
 	                	},100);
 	                });
 	            }
-	            
-	            if (gridOptions.actionCell != false && gridOptions.actionCell.length > 0) {
+
+                if (gridOptions.actionCell != false) {
 	            	columns = [];
+
+                    if(gridOptions.actionCell instanceof Array) {
+                        var optionList = gridOptions.actionCell
+                        gridOptions.actionCell = {
+                            type: 'dropdown',
+                            optionList: optionList
+                        };
+                    }
+
+                    if(gridOptions.actionCell.type == 'dropdown' && gridOptions.actionCell.optionList.length > 0){
 	                columns.push({
 	                	id: 'slick_action_cog',
 	                    field:"",
@@ -507,11 +517,11 @@ function getDefaultGridConfig() {
 	                    formatter: function(r, c, v, cd, dc) {
 	                    	var actionCellArray = [];
 	                        if(contrail.checkIfFunction(gridOptions.actionCell)){
-	                            actionCellArray = gridOptions.actionCell(dc);
-	                        } else{
-	                            actionCellArray = gridOptions.actionCell;
-	                        }
-	                        
+                                    actionCellArray = gridOptions.actionCell.optionList(dc);
+                                } else{
+                                    actionCellArray = gridOptions.actionCell.optionList;
+                                }
+
 	                        return (actionCellArray.length > 0) ? '<i class="icon-cog icon-only bigger-110 grid-action-cog"></i>' : '';
 	                    },
 	                    searchable: false,
@@ -520,6 +530,26 @@ function getDefaultGridConfig() {
 	                        allow: false
 	                    }
 	                });
+                    }
+                    else if(gridOptions.actionCell.type == 'link') {
+                        columns.push({
+                            id: 'slick_action_link',
+                            field:"",
+                            cssClass: 'action-link-cell',
+                            rerenderOnResize: false,
+                            width: 20,
+                            resizable: false,
+                            formatter: function(r, c, v, cd, dc) {
+                                return '<i class="' + gridOptions.actionCell.iconClass + ' icon-only grid-action-link"></i>';
+                            },
+                            searchable: false,
+                            sortable: false,
+                            exportConfig: {
+                                allow: false
+                            }
+                        });
+                    }
+
 	                columns = gridColumns.concat(columns);
 	                gridColumns = columns;
 	            }
@@ -577,33 +607,33 @@ function getDefaultGridConfig() {
                 if(contrail.checkIfExist(gridConfig.body.events) && contrail.checkIfFunction(gridConfig.body.events.onClick)){
                 	gridConfig.body.events.onClick(e,rowData);
                 }
-                
+
                 if(contrail.checkIfExist(column.events) && contrail.checkIfFunction(column.events.onClick)){
                 	column.events.onClick(e,rowData);
                 }
-                
+
                 if(gridOptions.rowSelectable){
-                    if(!gridContainer.find('.slick_row_' + rowData.id).hasClass('selected_row')){
+                    if(!gridContainer.find('.slick_row_' + rowData.cgrid).hasClass('selected_row')){
                         gridContainer.find('.selected_row').removeClass('selected_row');
-                        gridContainer.find('.slick_row_' + rowData.id).addClass('selected_row');
+                        gridContainer.find('.slick_row_' + rowData.cgrid).addClass('selected_row');
                     }
                 }
 
                 setTimeout(function(){
                     if(gridContainer.data('contrailGrid') != null)
-                        gridContainer.data('contrailGrid').adjustRowHeight(rowData.id);
+                        gridContainer.data('contrailGrid').adjustRowHeight(rowData.cgrid);
                 },50);
 
-                if ($(e.target).hasClass("grid-action-cog")) {
+                if ($(e.target).hasClass("grid-action-dropdown")) {
                     if($('#' + gridContainer.prop('id') + '-action-menu-' + args.row).is(':visible')){
-                    	$('#' + gridContainer.prop('id') + '-action-menu-' + args.row).remove();
+                        $('#' + gridContainer.prop('id') + '-action-menu-' + args.row).remove();
                     } else {
-                    	$('.grid-action-menu').remove();
+                        $('.grid-action-menu').remove();
                         var actionCellArray = [];
                         if(contrail.checkIfFunction(gridOptions.actionCell)){
-                            actionCellArray = gridOptions.actionCell(rowData);
+                            actionCellArray = gridOptions.actionCell.optionList(rowData);
                         } else{
-                            actionCellArray = gridOptions.actionCell;
+                            actionCellArray = gridOptions.actionCell.optionList;
                         }
 
                         //$('#' + gridContainer.prop('id') + '-action-menu').remove();
@@ -615,8 +645,14 @@ function getDefaultGridConfig() {
                         }).show();
                         e.stopPropagation();
                         initOnClickDocument('#' + gridContainer.prop('id') + '-action-menu-' + args.row,function(){
-                        	$('#' + gridContainer.prop('id') + '-action-menu-' + args.row).hide();
+                            $('#' + gridContainer.prop('id') + '-action-menu-' + args.row).hide();
                         });
+                    }
+                }
+
+                if ($(e.target).hasClass("grid-action-link")) {
+                    if(gridOptions.actionCell.type == 'link') {
+                        gridOptions.actionCell.onclick(e, args);
                     }
                 }
             };
@@ -670,11 +706,11 @@ function getDefaultGridConfig() {
                         gridContainer.data('contrailGrid').refreshDetailView();
                         
                         //Retain the checked rows and set it back
-                        var ids = [];
-                    	$.each(checkedRows, function(key,val){
-                    		ids.push(val.id);
-                    	});
-                    	gridContainer.data('contrailGrid').setCheckedRows(ids);
+                        var cgrids = [];
+                        $.each(checkedRows, function(key,val){
+                            cgrids.push(val.cgrid);
+                        });
+                        gridContainer.data('contrailGrid').setCheckedRows(cgrids);
                     }
                 }, 50);
             };
@@ -811,11 +847,7 @@ function getDefaultGridConfig() {
                  * Returns an array of data of the checked rows via checkbox when checkboxSelectable is set to true
                  */
                 getCheckedRows: function(){
-                    var returnValue = [];
-                    gridContainer.find('.rowCheckbox:checked').each(function(key, val){
-                        returnValue.push(grid.getDataItem($(this).val()));
-                    });
-                    return returnValue;
+                    return currentSelectedRows;
                 },
                 /*
                  * Sets the checked rows of the rows based on rowIndices
@@ -829,12 +861,12 @@ function getDefaultGridConfig() {
                     return grid.getDataItem(gridContainer.data('contrailGrid').selectedRow);
                 },
                 deleteDataByRows: function(rowIndices){
-                	var ids = [];
+                	var cgrids = [];
                 	$.each(rowIndices, function(key, val){
                 		var dataItem = grid.getDataItem(val);
-                		ids.push(dataItem.id);
+                		ids.push(dataItem.cgrid);
                 	});
-                	dataView.deleteDataByIds(ids);
+                	dataView.deleteDataByIds(cgrids);
                 },
                 showGridMessage: function(status, customMsg){
                     var gridStatusMsgConfig = gridConfig.body.statusMessages,
@@ -924,6 +956,7 @@ function getDefaultGridConfig() {
                     if (contrail.checkIfExist(gridDataSource.remote) && contrail.checkIfExist(gridDataSource.remote.ajaxConfig.url)) {
                         dataView.refreshData();
                     }
+                    currentSelectedRows = [];
                 },
                 /*
                  * Refreshes the view of the grid. Grid is rendered and related adjustments are made.
@@ -936,11 +969,11 @@ function getDefaultGridConfig() {
                 	this.adjustAllRowHeight();
                 	this.adjustGridAlternateColors();
                 	this.refreshDetailView(refreshDetailTemplateFlag);
-                	var ids = [];
+                	var cgrids = [];
                 	$.each(checkedRows, function(key,val){
-                		ids.push(val.id);
+                		ids.push(val.cgrid);
                 	});
-                	this.setCheckedRows(ids);
+                	this.setCheckedRows(cgrids);
                 }, 
                 /*
                  * Refreshes the detail view of the grid. Grid is rendered and related adjustments are made.
@@ -1409,6 +1442,7 @@ var ContrailDataView = function(dvConfig) {
                 if(!contrail.checkIfExist(val.cgrid)){
                     data[key].cgrid = 'id_' + (key + offset);
                 }
+                data[key].cgrchecked = false;
             });
             dis._idOffset += data.length;
         }

@@ -503,29 +503,71 @@
 
     $.fn.contrailWizard = function (config) {
         var self = this,
-            steps = config.steps;
+            steps = config.steps,
+            stepsInitFlag = [];
+
+        for (var i = 0 ; i < steps.length ; i++){
+            stepsInitFlag.push(false);
+        }
+
+        config.onInit = function (event, currentIndex) {
+            if(contrail.checkIfFunction(steps[currentIndex].onInitFromPrevious)) {
+                steps[currentIndex].onInitFromPrevious(config.params);
+            }
+            if(contrail.checkIfFunction(steps[currentIndex].onInitFromNext)) {
+                steps[currentIndex].onInitFromNext(config.params);
+            }
+            stepsInitFlag[currentIndex] = true;
+
+            if(contrail.checkIfFunction(steps[currentIndex].onLoadFromPrevious)) {
+                steps[currentIndex].onLoadFromPrevious(config.params);
+            }
+            if(contrail.checkIfFunction(steps[currentIndex].onLoadFromNext)) {
+                steps[currentIndex].onLoadFromNext(config.params);
+            }
+        };
 
         config.onStepChanged = function(event, currentIndex, priorIndex) {
             if(currentIndex < priorIndex) {
                 self.find('.steps').find('li:eq(' + priorIndex + ')').removeClass('done');
             }
 
-            if(contrail.checkIfFunction(steps[currentIndex].onLoad)) {
-                steps[currentIndex].onLoad();
+            if(!stepsInitFlag[currentIndex]) {
+                if(currentIndex > priorIndex && contrail.checkIfFunction(steps[currentIndex].onInitFromNext)) {
+                    steps[currentIndex].onInitFromNext(config.params);
+                }
+                else if(currentIndex < priorIndex && contrail.checkIfFunction(steps[currentIndex].onInitFromPrevious)) {
+                    steps[currentIndex].onInitFromPrevious(config.params);
+                }
+                stepsInitFlag[currentIndex] = true;
+            }
+
+            if(currentIndex > priorIndex && contrail.checkIfFunction(steps[currentIndex].onLoadFromNext)) {
+                steps[currentIndex].onLoadFromNext(config.params);
+            }
+            else if(currentIndex < priorIndex && contrail.checkIfFunction(steps[currentIndex].onLoadFromPrevious)) {
+                steps[currentIndex].onLoadFromPrevious(config.params);
             }
         };
 
         config.onStepChanging = function (event, currentIndex, newIndex) {
+
+            // Next Button clicked
             if(currentIndex < newIndex && contrail.checkIfFunction(steps[currentIndex].onNext)) {
-                return steps[currentIndex].onNext();
+                return steps[currentIndex].onNext(config.params);
             }
+            // Previous Button Clicked
             else if(currentIndex > newIndex && contrail.checkIfFunction(steps[currentIndex].onPrevious)) {
-                return steps[currentIndex].onPrevious();
+                return steps[currentIndex].onPrevious(config.params);
             }
             else {
                 return true;
             }
         };
+
+        config.onFinished = function (event, currentIndex) {
+            steps[currentIndex].onNext(config.params);
+        }
 
         self.steps(config);
     };
