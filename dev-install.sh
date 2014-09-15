@@ -167,6 +167,7 @@ mkdir webroot/assets/backbone
 cp -af ./$THIRD_PARTY/backbone-min.js webroot/assets/backbone/backbone-min.js
 cp -af ./$THIRD_PARTY/backbone-min.map webroot/assets/backbone/backbone-min.map
 cp -af ./$THIRD_PARTY/knockback.min.js webroot/assets/backbone/knockback.min.js
+cp -af ./$THIRD_PARTY/backbone-validation-amd.js webroot/assets/backbone/backbone-validation-amd.js
 #End - Copy Backbone from $THIRD_PARTY
 
 #Start - Copy Requirejs & Textjs from $THIRD_PARTY
