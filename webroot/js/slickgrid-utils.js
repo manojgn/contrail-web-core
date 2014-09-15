@@ -847,7 +847,11 @@ function getDefaultGridConfig() {
                  * Returns an array of data of the checked rows via checkbox when checkboxSelectable is set to true
                  */
                 getCheckedRows: function(){
-                    return currentSelectedRows;
+                    var returnValue = [];
+                    gridContainer.find('.rowCheckbox:checked').each(function(key, val){
+                        returnValue.push(grid.getDataItem($(this).val()));
+                    });
+                    return returnValue;
                 },
                 /*
                  * Sets the checked rows of the rows based on rowIndices

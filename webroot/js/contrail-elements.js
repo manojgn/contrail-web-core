@@ -506,6 +506,8 @@
             steps = config.steps,
             stepsInitFlag = [];
 
+        self.addClass('contrailWizard');
+
         for (var i = 0 ; i < steps.length ; i++){
             stepsInitFlag.push(false);
         }
@@ -570,6 +572,12 @@
         }
 
         self.steps(config);
+
+        self.data('contrailWizard', {
+            destroy: function() {
+                self.steps('destroy');
+            }
+        })
     };
 
     $.fn.contrailCheckedMultiselect = function (config) {
