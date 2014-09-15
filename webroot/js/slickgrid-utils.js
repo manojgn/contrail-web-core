@@ -864,7 +864,7 @@ function getDefaultGridConfig() {
                 	var cgrids = [];
                 	$.each(rowIndices, function(key, val){
                 		var dataItem = grid.getDataItem(val);
-                		ids.push(dataItem.cgrid);
+                        cgrids.push(dataItem.cgrid);
                 	});
                 	dataView.deleteDataByIds(cgrids);
                 },
