@@ -496,7 +496,7 @@ function getDefaultGridConfig() {
 	            }
 
                 if (gridOptions.actionCell != false) {
-	            	columns = [];
+                    columns = [];
 
                     if(gridOptions.actionCell instanceof Array) {
                         var optionList = gridOptions.actionCell
@@ -507,29 +507,29 @@ function getDefaultGridConfig() {
                     }
 
                     if(gridOptions.actionCell.type == 'dropdown' && gridOptions.actionCell.optionList.length > 0){
-	                columns.push({
-	                	id: 'slick_action_cog',
-	                    field:"",
-	                    cssClass: 'action-cog-cell',
-	                    rerenderOnResize: false,
-	                    width: 20,
-	                    resizable: false,
-	                    formatter: function(r, c, v, cd, dc) {
-	                    	var actionCellArray = [];
-	                        if(contrail.checkIfFunction(gridOptions.actionCell)){
+                        columns.push({
+                            id: 'slick_action_cog',
+                            field:"",
+                            cssClass: 'action-cog-cell',
+                            rerenderOnResize: false,
+                            width: 20,
+                            resizable: false,
+                            formatter: function(r, c, v, cd, dc) {
+                                var actionCellArray = [];
+                                if(contrail.checkIfFunction(gridOptions.actionCell)){
                                     actionCellArray = gridOptions.actionCell.optionList(dc);
                                 } else{
                                     actionCellArray = gridOptions.actionCell.optionList;
                                 }
 
-	                        return (actionCellArray.length > 0) ? '<i class="icon-cog icon-only bigger-110 grid-action-cog"></i>' : '';
-	                    },
-	                    searchable: false,
-	                    sortable: false,
-	                    exportConfig: {
-	                        allow: false
-	                    }
-	                });
+                                return (actionCellArray.length > 0) ? '<i class="icon-cog icon-only bigger-110 grid-action-dropdown"></i>' : '';
+                            },
+                            searchable: false,
+                            sortable: false,
+                            exportConfig: {
+                                allow: false
+                            }
+                        });
                     }
                     else if(gridOptions.actionCell.type == 'link') {
                         columns.push({
@@ -550,9 +550,9 @@ function getDefaultGridConfig() {
                         });
                     }
 
-	                columns = gridColumns.concat(columns);
-	                gridColumns = columns;
-	            }
+                    columns = gridColumns.concat(columns);
+                    gridColumns = columns;
+                }
 
                 if(contrail.checkIfExist(gridOptions.sortable.defaultSortCols)) {
                     $.each(gridOptions.sortable.defaultSortCols, function (defaultSortColKey, defaultSortColValue) {
