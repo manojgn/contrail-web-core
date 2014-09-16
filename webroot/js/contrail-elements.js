@@ -513,13 +513,22 @@
         }
 
         config.onInit = function (event, currentIndex) {
-            if(contrail.checkIfFunction(steps[currentIndex].onInitFromPrevious)) {
-                steps[currentIndex].onInitFromPrevious(config.params);
+            $.each(steps, function(stepKey, stepValue){
+                if(contrail.checkIfFunction(stepValue.onInitWizard)) {
+                    stepValue.onInitWizard();
+                    stepsInitFlag[stepKey] = true;
+                }
+            });
+
+            if(!stepsInitFlag[currentIndex]){
+                if(contrail.checkIfFunction(steps[currentIndex].onInitFromPrevious)) {
+                    steps[currentIndex].onInitFromPrevious(config.params);
+                }
+                if(contrail.checkIfFunction(steps[currentIndex].onInitFromNext)) {
+                    steps[currentIndex].onInitFromNext(config.params);
+                }
+                stepsInitFlag[currentIndex] = true;
             }
-            if(contrail.checkIfFunction(steps[currentIndex].onInitFromNext)) {
-                steps[currentIndex].onInitFromNext(config.params);
-            }
-            stepsInitFlag[currentIndex] = true;
 
             if(contrail.checkIfFunction(steps[currentIndex].onLoadFromPrevious)) {
                 steps[currentIndex].onLoadFromPrevious(config.params);
@@ -527,6 +536,7 @@
             if(contrail.checkIfFunction(steps[currentIndex].onLoadFromNext)) {
                 steps[currentIndex].onLoadFromNext(config.params);
             }
+            showStepButtons(steps[currentIndex].showButtons);
         };
 
         config.onStepChanged = function(event, currentIndex, priorIndex) {
@@ -550,6 +560,7 @@
             else if(currentIndex < priorIndex && contrail.checkIfFunction(steps[currentIndex].onLoadFromPrevious)) {
                 steps[currentIndex].onLoadFromPrevious(config.params);
             }
+            showStepButtons(steps[currentIndex].showButtons);
         };
 
         config.onStepChanging = function (event, currentIndex, newIndex) {
@@ -572,6 +583,38 @@
         }
 
         self.steps(config);
+
+        self.find('.actions').find('a').addClass('btn btn-mini')
+        self.find('.actions').find('a[href="#next"]').addClass('btn-primary');
+        self.find('.actions').find('a[href="#finish"]').addClass('btn-primary');
+
+        $('.wizard > .steps > ul > li').css({
+            'max-width': (100/steps.length) + '%'
+        });
+
+        var stepIndex = 0;
+        $('.wizard > .steps ul li').each(function(key, value){
+            if(steps[key].stepType == 'sub-step'){
+                $(this).addClass('subStep');
+                $(this).find('.number').text('');
+                $(this).find('.title').text('');
+
+            }
+            else {
+                $(this).find('.number').text(++stepIndex);
+            }
+        })
+
+        function showStepButtons(showButtons){
+            self.find('.actions').find('a').show();
+            if(contrail.checkIfExist(showButtons)) {
+                $.each(showButtons, function (showButtonKey, showButtonValue) {
+                    if (!showButtonValue) {
+                        self.find('.actions').find('a[href="#' + showButtonKey + '"]').hide();
+                    }
+                });
+            }
+        }
 
         self.data('contrailWizard', {
             destroy: function() {
