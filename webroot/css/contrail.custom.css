@@ -1671,7 +1671,8 @@ color: #b94a48;
     color: #2B3D53;
 }
 .wizard > .content {
-    min-height: 270px;
+    min-height: 257px;
+    margin: 0;
     overflow-y: auto;
     background-color: #fff;
 }

@@ -606,11 +606,11 @@
         })
 
         function showStepButtons(showButtons){
-            self.find('.actions').find('a').show();
+            self.find('.actions').find('a').parent('li[aria-hidden!="true"]').show();
             if(contrail.checkIfExist(showButtons)) {
                 $.each(showButtons, function (showButtonKey, showButtonValue) {
                     if (!showButtonValue) {
-                        self.find('.actions').find('a[href="#' + showButtonKey + '"]').hide();
+                        self.find('.actions').find('a[href="#' + showButtonKey + '"]').parent('li').hide();
                     }
                 });
             }
