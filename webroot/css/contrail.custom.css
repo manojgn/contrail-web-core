@@ -1451,7 +1451,10 @@ input.datetimepicker{
 /* a Links */
 a.disabled-link, a.disabled-link:hover{
 	color: #ccc;
-	cursor: default !important;
+	cursor: initial !important;
+}
+a.disabled-link i {
+    cursor: default;
 }
 .disabledBtn, .disabledBtn:hover {
     background-color: #898989 !important;

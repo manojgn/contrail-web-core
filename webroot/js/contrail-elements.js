@@ -4,7 +4,8 @@
 (function($) {
     $.ui.tabs.prototype._tabKeydown = function(event){
         return;
-    }
+    };
+
     $.fn.contrailAutoComplete = function(option){
         var self = this;
         option = (typeof option === "undefined") ? {} : option;
@@ -58,7 +59,7 @@
             option: option,
             setMinDateTime: function(minDateTime) {
                 self.data('contrailDateTimePicker').option.minDate = moment(minDateTime).format('MMM DD, YYYY');
-                self.data('contrailDateTimePicker').option.minTime = moment(minDateTime).format('hh:mm:ss A');;
+                self.data('contrailDateTimePicker').option.minTime = moment(minDateTime).format('hh:mm:ss A');
 
                 self.addClass('datetimepicker')
                     .datetimepicker(self.data('contrailDateTimePicker').option);
@@ -329,7 +330,7 @@
 			beforeMoveOneToLeft: function(){ return true; },
 			afterMoveOneToLeft: function(){},
 			beforeMoveAllToLeft: function(){ return true; },
-			afterMoveAllToLeft: function(){},
+			afterMoveAllToLeft: function(){}
         };
         var options = $.extend({}, defaultOptions, givenOptions);
         constructContrail2WayMultiselect(this, options);
@@ -616,11 +617,20 @@
             }
         }
 
-        self.data('contrailWizard', {
-            destroy: function() {
-                self.steps('destroy');
-            }
-        })
+        self.data('contrailWizard', $.extend(true, {}, getDefaultStepsMethods(), {}));
+
+        function getDefaultStepsMethods() {
+            var methodObj = {},
+                defaultMethods = ['next', 'previous', 'finish', 'destroy', 'skip'];
+
+            $.each(defaultMethods, function (defaultMethodKey, defaultMethodValue) {
+                methodObj[defaultMethodValue] = function () {
+                    return self.steps(defaultMethodValue);
+                };
+            });
+
+            return methodObj;
+        }
     };
 
     $.fn.contrailCheckedMultiselect = function (config) {
