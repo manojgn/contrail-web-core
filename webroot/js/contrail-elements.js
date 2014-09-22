@@ -541,8 +541,16 @@
         };
 
         config.onStepChanged = function(event, currentIndex, priorIndex) {
+            var currentStepLiElement = self.find('.steps').find('li:eq(' + currentIndex + ')');
             if(currentIndex < priorIndex) {
                 self.find('.steps').find('li:eq(' + priorIndex + ')').removeClass('done');
+                currentStepLiElement.removeClass('completed');
+            }
+            else if(currentIndex > priorIndex) {
+
+                if(!currentStepLiElement.hasClass('subStep')) {
+                    currentStepLiElement = self.find('.steps').find('li.done').addClass('completed')
+                }
             }
 
             if(!stepsInitFlag[currentIndex]) {
@@ -566,17 +574,20 @@
 
         config.onStepChanging = function (event, currentIndex, newIndex) {
 
+            var returnFlag = true;
             // Next Button clicked
             if(currentIndex < newIndex && contrail.checkIfFunction(steps[currentIndex].onNext)) {
-                return steps[currentIndex].onNext(config.params);
+                returnFlag = steps[currentIndex].onNext(config.params);
             }
             // Previous Button Clicked
             else if(currentIndex > newIndex && contrail.checkIfFunction(steps[currentIndex].onPrevious)) {
-                return steps[currentIndex].onPrevious(config.params);
+                returnFlag = steps[currentIndex].onPrevious(config.params);
             }
-            else {
-                return true;
+
+            if(returnFlag) {
+                self.find('.steps').find('li:eq(' + newIndex + ')').removeClass('completed');
             }
+            return returnFlag;
         };
 
         config.onFinished = function (event, currentIndex) {
