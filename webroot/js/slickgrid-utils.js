@@ -254,7 +254,7 @@ function getDefaultGridConfig() {
                 gridContainer.find('.grid-widget-header .widget-toolbar-icon').on('click', function(e) {
                     var command = $(this).attr('data-action'),
                         gridHeader = $(this).parents(".grid-header");
-                    
+
                     switch (command) {
 	                    case 'search':
 	                        gridHeader.find('.link-searchbox').toggle();
@@ -281,7 +281,7 @@ function getDefaultGridConfig() {
 	                    case 'export':
 	                        var gridDSConfig = gridDataSource,
 	                            gridData = [], dv;
-	                        
+
 	                        gridContainer.find('a[data-action="export"] i').removeClass('icon-download-alt').addClass('icon-spin icon-spinner');
 	                        gridContainer.find('a[data-action="export"]').prop('title','Exporting...').data('action','exporting').addClass('blue');
 	                        if(contrail.checkIfExist(gridDSConfig.remote) && gridDSConfig.remote.serverSidePagination) {
@@ -301,7 +301,7 @@ function getDefaultGridConfig() {
                         break;
 	                    case 'collapse':
 	                    	gridHeader.find('i.collapse-icon').toggleClass('icon-chevron-up').toggleClass('icon-chevron-down');
-	                    	
+
 	                    	if(gridHeader.find('i.collapse-icon').hasClass('icon-chevron-up')){
 	                			gridContainer.children().removeClass('collapsed');
 	                    	} else if(gridHeader.find('i.collapse-icon').hasClass('icon-chevron-down')){
@@ -318,25 +318,27 @@ function getDefaultGridConfig() {
                 		if(typeof val.searchable == 'undefined' || val.searchable != false)
                             searchColumns.push(val);
                 	}
-                	
-                	// Setting sortable:true for columns wherever necessary
-                	if(gridOptions.sortable != false){
-                		if(!contrail.checkIfExist(val.sortable)){
-                			gridColumns[key].sortable = true;
-                		}
-                        if(contrail.checkIfExist(gridOptions.sortable.defaultSortCols) && contrail.checkIfExist(gridOptions.sortable.defaultSortCols[val.field])) {
-                            gridOptions.sortable.defaultSortCols[val.field].gridColumnKey = key;
-                        }
-                    }
-                	else{
-                		gridColumns[key].sortable = false;
-                	}
-                	
-                	if(!contrail.checkIfExist(gridColumns[key].id)){
-                		gridColumns[key].id = val.field + '_' + key;
-                	}
                 });
             }
+
+            $.each(gridColumns, function (key, val) {
+                // Setting sortable:true for columns wherever necessary
+                if(gridOptions.sortable != false){
+                    if(!contrail.checkIfExist(val.sortable)){
+                        gridColumns[key].sortable = true;
+                    }
+                    if(contrail.checkIfExist(gridOptions.sortable.defaultSortCols) && contrail.checkIfExist(gridOptions.sortable.defaultSortCols[val.field])) {
+                        gridOptions.sortable.defaultSortCols[val.field].gridColumnKey = key;
+                    }
+                }
+                else{
+                    gridColumns[key].sortable = false;
+                }
+
+                if(!contrail.checkIfExist(gridColumns[key].id)){
+                    gridColumns[key].id = val.field + '_' + key;
+                }
+            });
         };
 
         function initGridBodyOptions() {
@@ -498,7 +500,7 @@ function getDefaultGridConfig() {
                 if (gridOptions.actionCell != false) {
                     columns = [];
 
-                    if(gridOptions.actionCell instanceof Array) {
+                    if(gridOptions.actionCell instanceof Array || contrail.checkIfFunction(gridOptions.actionCell)) {
                         var optionList = gridOptions.actionCell
                         gridOptions.actionCell = {
                             type: 'dropdown',
@@ -516,7 +518,7 @@ function getDefaultGridConfig() {
                             resizable: false,
                             formatter: function(r, c, v, cd, dc) {
                                 var actionCellArray = [];
-                                if(contrail.checkIfFunction(gridOptions.actionCell)){
+                                if(contrail.checkIfFunction(gridOptions.actionCell.optionList)){
                                     actionCellArray = gridOptions.actionCell.optionList(dc);
                                 } else{
                                     actionCellArray = gridOptions.actionCell.optionList;
@@ -630,7 +632,7 @@ function getDefaultGridConfig() {
                     } else {
                         $('.grid-action-menu').remove();
                         var actionCellArray = [];
-                        if(contrail.checkIfFunction(gridOptions.actionCell)){
+                        if(contrail.checkIfFunction(gridOptions.actionCell.optionList)){
                             actionCellArray = gridOptions.actionCell.optionList(rowData);
                         } else{
                             actionCellArray = gridOptions.actionCell.optionList;
@@ -714,7 +716,20 @@ function getDefaultGridConfig() {
                     }
                 }, 50);
             };
-            
+            eventHandlerMap.dataView['onDataUpdate'] = function(e,args) {
+                //Refresh the grid only if it's not destroyed
+                if($(gridContainer).data('contrailGrid')) {
+                    grid.invalidateAllRows();
+                    grid.updateRowCount();
+                    grid.render();
+                    if(contrail.checkIfFunction(gridDataSource.events.onUpdateDataCB)) {
+                        gridDataSource.events.onUpdateDataCB();
+                    }
+                    if(gridDataSource.dataView != null && gridDataSource.dataView.getItems().length == 0)
+                        gridContainer.data('contrailGrid').showGridMessage('empty');
+                    gridContainer.data('contrailGrid').refreshView();
+                }
+            };
             eventHandlerMap.dataView['onUpdateData'] = function () {
                 //Refresh the grid only if it's not destroyed
                 if($(gridContainer).data('contrailGrid')) {
@@ -877,11 +892,13 @@ function getDefaultGridConfig() {
                         statusMsg = contrail.checkIfExist(customMsg) ? customMsg : (contrail.checkIfExist(gridStatusMsgConfig[status]) ? gridStatusMsgConfig[status].text : ''),
                         messageHtml;
                 	this.removeGridMessage();
-                	if(status == 'loading'){
+                	if(status == 'loading' || status == 'loadingNextPage'){
                 		gridContainer.find('.grid-header-icon-loading').show();
                 	}
-                	messageHtml = (contrail.checkIfExist(gridStatusMsgConfig[status])) ? '<p class="' + gridStatusMsgConfig[status].type + '"><i class="' + gridStatusMsgConfig[status].iconClasses + '"></i> ' + statusMsg + '</p>' : status;
-                	gridContainer.find('.grid-load-status').html(messageHtml).removeClass('hide');
+                	if(status != 'loadingNextPage') {
+                	    messageHtml = (contrail.checkIfExist(gridStatusMsgConfig[status])) ? '<p class="' + gridStatusMsgConfig[status].type + '"><i class="' + gridStatusMsgConfig[status].iconClasses + '"></i> ' + statusMsg + '</p>' : status;
+                	    gridContainer.find('.grid-load-status').html(messageHtml).removeClass('hide');
+                	}
 
                 },
                 removeGridMessage: function(){
