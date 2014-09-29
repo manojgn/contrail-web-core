@@ -60,7 +60,8 @@
             });
             var dataStack = [];
             var totalBucketizedNodes = 0;
-            isBucketize = (chartOptions['isBucketize'])? true: false;
+            //isBucketize = (chartOptions['isBucketize'])? true: false;
+            isBucketize = (!getCookie(DO_BUCKETIZE_COOKIE))? defaultBucketize : (getCookie(DO_BUCKETIZE_COOKIE) == 'yes')? true : false;
             if(isBucketize){
                 data = doBucketization(data,chartOptions);
                 totalBucketizedNodes = getTotalBucketizedNodes(data['d']);
@@ -154,106 +155,17 @@
 
             chartOptions['elementClickFunction'] = function (e) {
                 if(e['point']['isBucket']){
-                    var chartid = $(selector).attr('id');
-                   // var data = e['point']['children'];
-                    var minMaxX = e['point']['minMaxX'];
-                    var minMaxY = e['point']['minMaxY'];
-                   /* var parentMinMax = $('#' + chartid).data('parentMinMax');
-                    if(parentMinMax == null){
-                        parentMinMax = [];
-                    }
-                    var newParent = {minMaxX:minMaxX,minMaxY:minMaxY};
-                    if(parentMinMax.length > 0){
-                        //check if the last object is not the same as current and then add
-                        if(JSON.stringify(parentMinMax[parentMinMax.length-1]) === JSON.stringify(newParent)){
-                            parentMinMax.push(newParent);
-                        }
-                    } else {
-                        parentMinMax.push(newParent);
-                    } 
-                    $("#"+ chartid).data('parentMinMax',parentMinMax);
-                    */
-                    //var datum = d3.select($('#vrouter-bubble svg')[0]).datum();
-                    //var data = datum[0].values;
-                    //var data = $.map(origData.d, function (obj) {
-                    //                return $.extend(true, {}, obj);
-                    //            });
-                    var origData = $("#"+ chartid).data('origData');
-                    var data = $.extend(true,{},origData);
-                    var currLevel ;
-                    if(origData != null && origData['chartOptions'] != null && 
-                            origData['chartOptions']['bucketOptions'] != null){
-                        currLevel = origData['chartOptions']['bucketOptions']['currLevel'];
-                        if(currLevel != null){
-                            currLevel++;
-                        } else {
-                            currLevel = 1;//it is at first level now after the first click
-                        }
-                        origData['chartOptions']['bucketOptions']['currLevel'] = currLevel;
-                        //assign back with the updated current level
-                       // $("#"+ chartid).data('origData',origData);
-                    }
-                    
-                    var minMax = {minMaxX:minMaxX,minMaxY:minMaxY};
-                    var bucketOptions = {};
-                    if(data['chartOptions'] != null && data['chartOptions']['bucketOptions'] != null){
-                        bucketOptions = data['chartOptions']['bucketOptions'];
-                        bucketOptions['minMax'] = minMax
-                    }
-                    data.chartOptions['bucketOptions'] = bucketOptions;
-                    
-                    origData.chartOptions.bucketOptions.minMax = minMax;
-                    $(selector).data('origData',origData);
-                   // $("#"+ chartid).initScatterChart(data);
-                    //filterAndUpdateScatterChart(chartid,data);
-                    var cfName = data.chartOptions['crossFilter'];
-                    filterUsingGlobalCrossFilter(cfName,minMaxX,minMaxY);
+                    zoomIn(e,selector);
                 } else if(typeof(chartOptions['clickFn']) == 'function') {
                     chartOptions['clickFn'](e['point']);
                 } else {
                     processDrillDownForNodes(e);
                 }
+                
             };
             
             chartOptions['elementDblClickFunction'] = function (e) {
-                //alert('double clicked');
-                var origData = $(selector).data('origData');
-                var parentMinMax;
-                var currMinMax,minMaxX,minMaxY,currLevel;
-                var data = $.extend(true,{},origData);
-                var chartid = $(selector).attr('id');
-                
-                if(origData != null && origData['chartOptions'] != null && 
-                        origData['chartOptions']['bucketOptions'] != null){
-                    if(origData['chartOptions']['bucketOptions']['parentMinMax'] != null){
-                        parentMinMax = origData['chartOptions']['bucketOptions']['parentMinMax'];
-                        currMinMax = parentMinMax.pop();
-                        origData['chartOptions']['bucketOptions']['parentMinMax'] = parentMinMax;
-                    }
-                    /*Not using this now since we zoom out to the first level always
-                     * if(origData['chartOptions']['bucketOptions']['currLevel'] != null){
-                        currLevel = origData['chartOptions']['bucketOptions']['currLevel'];
-                        if(currLevel != null && currLevel > 0){
-                            currLevel--;
-                        } 
-                        origData['chartOptions']['bucketOptions']['currLevel'] = currLevel;
-                    }*/
-                    origData['chartOptions']['bucketOptions']['currLevel'] = 0;
-                    $(selector).data('origData',origData);//update it back
-                }
-                
-                if(currMinMax != null){
-                    minMaxX = currMinMax['minMaxX'];
-                    minMaxY = currMinMax['minMaxY'];
-                }
-                var minMax = {minMaxX:minMaxX,minMaxY:minMaxY};
-                data['chartOptions']['bucketOptions']['minMax'] = null;
-              //since we are zooming out to first level
-                data['chartOptions']['bucketOptions']['currLevel'] = 0;
-//                $(selector).initScatterChart(data);
-               // filterAndUpdateScatterChart(chartid,data);
-                var cfName = data.chartOptions['crossFilter'];
-                filterUsingGlobalCrossFilter(cfName,null,null);
+                zoomOut(selector);
             };
             
             chartOptions['elementMouseoutFn'] = function (e) {
@@ -310,27 +222,40 @@
                  }
                  function showAxisParams(settings) {
                      var selParent = $(selector).parent('div');
-                     if(chartOptions['isBucketize']){
-                         $('#checkbox-bucketize').attr('checked','checked');
+                     var doBucketize =  (!getCookie(DO_BUCKETIZE_COOKIE))? defaultBucketize : (getCookie(DO_BUCKETIZE_COOKIE) == 'yes')? true : false;
+                     var maxBucketizeLevel =  (!getCookie(BUCKETIZE_LEVEL_COOKIE))? defaultBucketsPerAxis : parseInt(getCookie(BUCKETIZE_LEVEL_COOKIE));
+                     var bucketsPerAxis =  (!getCookie(BUCKETS_PER_AXIS_COOKIE))? defaultMaxBucketizeLevel : parseInt(getCookie(BUCKETS_PER_AXIS_COOKIE));
+                     if(doBucketize){
+                         $(selParent).find('#checkbox-bucketize').prop('checked', true);
                          $(selParent).find('#div-bucket-options').show();
+                     } else { 
+                         $(selParent).find('#checkbox-bucketize').prop('checked', false);
+                         $(selParent).find('#div-bucket-options').hide();
                      }
+                     $(selParent).find('#chartSettingsBucketMaxBucketizeLevel').val(maxBucketizeLevel);
+                     $(selParent).find('#chartSettingsBucketPerAxis').val(bucketsPerAxis);
+                     
                      //on selection of bucketize checkbox add/remove bucketization
                      $(selParent).find('#checkbox-bucketize').change(function(e){
                          var origData = $(selector).data('origData');
                          var chartObj = $.extend(true,{},origData);
                          if ($(selParent).find('#checkbox-bucketize').is(":checked")){
+                             setCookie(DO_BUCKETIZE_COOKIE,'yes');
                              $(selParent).find('#div-bucket-options').show();
                              $(selParent).find('.bucketize-reset').show();
                              if(chartOptions['isBucketize'] != true){
                                  chartOptions['isBucketize'] = true;
                                  chartObj['chartOptions'] = chartOptions;
                                  $(selector).initScatterChart(chartObj);
+//                                 manageCrossFilters.fireCallBacks('vRoutersCF');
                              }
                          } else {
+                             setCookie(DO_BUCKETIZE_COOKIE,'no');
                              $(selParent).find('#div-bucket-options').hide();
                              $(selParent).find('.bucketize-reset').hide();
                              chartOptions['isBucketize'] = false;
                              chartObj['chartOptions'] = chartOptions;
+//                             manageCrossFilters.fireCallBacks('vRoutersCF');
                              $(selector).initScatterChart(chartObj);
                          }
                      });
@@ -343,6 +268,10 @@
                          }
                          var maxBucketizeLevel = $(selParent).find('#chartSettingsBucketMaxBucketizeLevel').val();
                          var bucketsPerAxis = $(selParent).find('#chartSettingsBucketPerAxis').val();
+                         //Save the values in cookies
+                         setCookie(BUCKETIZE_LEVEL_COOKIE,maxBucketizeLevel);
+                         setCookie(BUCKETS_PER_AXIS_COOKIE,bucketsPerAxis);
+                         
                          bucketOptions.maxBucketizeLevel = maxBucketizeLevel;
                          bucketOptions.bucketsPerAxis = bucketsPerAxis;
                          origData.chartOptions.bucketOptions = bucketOptions;
@@ -904,7 +833,7 @@ function mergeBucketIntoSingleNode(filteredNodes,minMaxX,minMaxY,parentMinMaxX,p
             avgX = d3.mean(filteredNodes,function(d){return d.x});
             avgY = d3.mean(filteredNodes,function(d){return d.y});
             var totatlIntfCnt = 0;
-            $.each(filternedNodes,function(i,d){
+            $.each(filteredNodes,function(i,d){
                 totatlIntfCnt += d['intfCnt'];
             });
             //this is to deviate a little bit from the middle
@@ -951,10 +880,12 @@ function doBucketization(data,chartOptions){
     if(chartOptions.bucketOptions != null){
         currLevel = bucketOptions.currLevel;
         minMax = bucketOptions.minMax;
-        maxBucketizeLevel = bucketOptions.maxBucketizeLevel;
+        //maxBucketizeLevel = bucketOptions.maxBucketizeLevel;
         parentMinMax = bucketOptions.parentMinMax;
-        bucketsPerAxis = bucketOptions.bucketsPerAxis;
+        //bucketsPerAxis = bucketOptions.bucketsPerAxis;
     }
+    maxBucketizeLevel = (!getCookie(BUCKETIZE_LEVEL_COOKIE))? defaultMaxBucketizeLevel : parseInt(getCookie(BUCKETIZE_LEVEL_COOKIE));
+    bucketsPerAxis = (!getCookie(BUCKETS_PER_AXIS_COOKIE))? defaultBucketsPerAxis : parseInt(getCookie(BUCKETS_PER_AXIS_COOKIE));
     //attach the original data to the chart div only if the chart is not already intialized
     if (data['d'] != null) {
         d = data['d'];
@@ -1746,3 +1677,100 @@ $('body').on('click','.color-selection .circle',function() {
     chart.update();
 });
 
+function zoomIn(e,selector){
+    var chartid = $(selector).attr('id');
+   // var data = e['point']['children'];
+    var minMaxX = e['point']['minMaxX'];
+    var minMaxY = e['point']['minMaxY'];
+   /* var parentMinMax = $('#' + chartid).data('parentMinMax');
+    if(parentMinMax == null){
+        parentMinMax = [];
+    }
+    var newParent = {minMaxX:minMaxX,minMaxY:minMaxY};
+    if(parentMinMax.length > 0){
+        //check if the last object is not the same as current and then add
+        if(JSON.stringify(parentMinMax[parentMinMax.length-1]) === JSON.stringify(newParent)){
+            parentMinMax.push(newParent);
+        }
+    } else {
+        parentMinMax.push(newParent);
+    } 
+    $("#"+ chartid).data('parentMinMax',parentMinMax);
+    */
+    //var datum = d3.select($('#vrouter-bubble svg')[0]).datum();
+    //var data = datum[0].values;
+    //var data = $.map(origData.d, function (obj) {
+    //                return $.extend(true, {}, obj);
+    //            });
+    var origData = $(selector).data('origData');
+    var data = $.extend(true,{},origData);
+    var currLevel ;
+    if(origData != null && origData['chartOptions'] != null && 
+            origData['chartOptions']['bucketOptions'] != null){
+        currLevel = origData['chartOptions']['bucketOptions']['currLevel'];
+        if(currLevel != null){
+            currLevel++;
+        } else {
+            currLevel = 1;//it is at first level now after the first click
+        }
+        origData['chartOptions']['bucketOptions']['currLevel'] = currLevel;
+        //assign back with the updated current level
+       // $("#"+ chartid).data('origData',origData);
+    }
+    
+    var minMax = {minMaxX:minMaxX,minMaxY:minMaxY};
+    var bucketOptions = {};
+    if(data['chartOptions'] != null && data['chartOptions']['bucketOptions'] != null){
+        bucketOptions = data['chartOptions']['bucketOptions'];
+        bucketOptions['minMax'] = minMax
+    }
+    data.chartOptions['bucketOptions'] = bucketOptions;
+    
+    origData.chartOptions.bucketOptions.minMax = minMax;
+    $(selector).data('origData',origData);
+   // $("#"+ chartid).initScatterChart(data);
+    //filterAndUpdateScatterChart(chartid,data);
+    var cfName = data.chartOptions['crossFilter'];
+    filterUsingGlobalCrossFilter(cfName,minMaxX,minMaxY);
+}
+
+function zoomOut(selector){
+    //alert('double clicked');
+    var origData = $(selector).data('origData');
+    var parentMinMax;
+    var currMinMax,minMaxX,minMaxY,currLevel;
+    var data = $.extend(true,{},origData);
+    var chartid = $(selector).attr('id');
+    
+//    if(origData != null && origData['chartOptions'] != null && 
+//            origData['chartOptions']['bucketOptions'] != null){
+//        if(origData['chartOptions']['bucketOptions']['parentMinMax'] != null){
+//            parentMinMax = origData['chartOptions']['bucketOptions']['parentMinMax'];
+//            currMinMax = parentMinMax.pop();
+//            origData['chartOptions']['bucketOptions']['parentMinMax'] = parentMinMax;
+//        }
+//        /*Not using this now since we zoom out to the first level always
+//         * if(origData['chartOptions']['bucketOptions']['currLevel'] != null){
+//            currLevel = origData['chartOptions']['bucketOptions']['currLevel'];
+//            if(currLevel != null && currLevel > 0){
+//                currLevel--;
+//            } 
+//            origData['chartOptions']['bucketOptions']['currLevel'] = currLevel;
+//        }*/
+//        origData['chartOptions']['bucketOptions']['currLevel'] = 0;
+//        $(selector).data('origData',origData);//update it back
+//    }
+//    
+//    if(currMinMax != null){
+//        minMaxX = currMinMax['minMaxX'];
+//        minMaxY = currMinMax['minMaxY'];
+//    }
+    var minMax = {minMaxX:minMaxX,minMaxY:minMaxY};
+    data['chartOptions']['bucketOptions']['minMax'] = null;
+  //since we are zooming out to first level
+    data['chartOptions']['bucketOptions']['currLevel'] = 0;
+//    $(selector).initScatterChart(data);
+   // filterAndUpdateScatterChart(chartid,data);
+    var cfName = data.chartOptions['crossFilter'];
+    filterUsingGlobalCrossFilter(cfName,null,null);
+}
