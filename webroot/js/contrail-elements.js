@@ -516,7 +516,7 @@
         config.onInit = function (event, currentIndex) {
             $.each(steps, function(stepKey, stepValue){
                 if(contrail.checkIfFunction(stepValue.onInitWizard)) {
-                    stepValue.onInitWizard();
+                    stepValue.onInitWizard(config.params);
                     stepsInitFlag[stepKey] = true;
                 }
             });
@@ -537,7 +537,7 @@
             if(contrail.checkIfFunction(steps[currentIndex].onLoadFromNext)) {
                 steps[currentIndex].onLoadFromNext(config.params);
             }
-            showStepButtons(steps[currentIndex].showButtons);
+            configureButton(steps[currentIndex].buttons);
         };
 
         config.onStepChanged = function(event, currentIndex, priorIndex) {
@@ -569,7 +569,7 @@
             else if(currentIndex < priorIndex && contrail.checkIfFunction(steps[currentIndex].onLoadFromPrevious)) {
                 steps[currentIndex].onLoadFromPrevious(config.params);
             }
-            showStepButtons(steps[currentIndex].showButtons);
+            configureButton(steps[currentIndex].buttons);
         };
 
         config.onStepChanging = function (event, currentIndex, newIndex) {
@@ -617,12 +617,15 @@
             }
         })
 
-        function showStepButtons(showButtons){
+        function configureButton(buttons){
             self.find('.actions').find('a').parent('li[aria-hidden!="true"]').show();
-            if(contrail.checkIfExist(showButtons)) {
-                $.each(showButtons, function (showButtonKey, showButtonValue) {
-                    if (!showButtonValue) {
-                        self.find('.actions').find('a[href="#' + showButtonKey + '"]').parent('li').hide();
+            if(contrail.checkIfExist(buttons)) {
+                $.each(buttons, function (buttonKey, buttonValue) {
+                    if (buttonValue.visible === false) {
+                        self.find('.actions').find('a[href="#' + buttonKey + '"]').parent('li').hide();
+                    }
+                    if (contrail.checkIfExist(buttonValue.label)) {
+                        self.find('.actions').find('a[href="#' + buttonKey + '"]').empty().append(buttonValue.label);
                     }
                 });
             }
