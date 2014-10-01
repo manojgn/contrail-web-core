@@ -2,6 +2,7 @@
  * Copyright (c) 2014 Juniper Networks, Inc. All rights reserved.
  */
 (function ($) {
+    var dragSrc = d3.behavior.drag();
     $.extend($.fn, {
         initMemCPUSparkLines: function(data, parser, propertyNames, slConfig) {
             var selector = $(this);
@@ -600,6 +601,65 @@
                     nv.tooltip.cleanup();
                 });
             }
+            //drag support
+            d3.select($(selector)[0]).select('svg').call(dragSrc
+                .on("drag", function(d, i){
+                    d.x  = d3.event.x;
+                    d.y = d3.event.y;
+                    if(d.dx == null) {
+                        d.dx = 0
+                    }   
+                    if(d.dy == null) {
+                        d.dy = 0
+                    }                     
+                    d.dx += d3.event.dx;
+                    d.dy -= d3.event.dy;
+                    if(d3.select($(selector)[0]).select('#rect1')[0][0] != null) {
+                        $('#rect1').remove();
+                    }
+                    var offsetX = d.offsetX, offsetY = d.offsetY, xMirror = 1 , yMirror = 1;                     
+                    if(d.dx < 0) {
+                        offsetX = -d.offsetX;
+                        xMirror = -1;
+                    }
+                    if(d.dy > 0) {
+                        offsetY = -d.offsetY;
+                        yMirror = -1;
+                    }                   
+                    
+                    d3.select($(selector)[0]).select('svg').append('rect').attr('id','rect1')
+                    .attr('x', offsetX)
+                    .attr('y',offsetY)
+                    .attr('width',Math.abs(d.dx))
+                    .attr('height',Math.abs(d.dy))
+                    .attr('style',"stroke:lightgrey;stroke-width:2;fill:lightgrey;fill-opacity:0.5;")
+                    .attr('transform', 'scale(' + xMirror + ',' + yMirror +')');
+                })
+                .on("dragend", function(d,i){   
+                     if(d3.select($(selector)[0]).select('#rect1')[0][0] != null) {
+                         $('#rect1').remove();
+                     }                
+                     d.offsetX = d.offsetX - 70;
+                     d.offsetY = d.offsetY - 30;
+                     var minMaxX = [];
+                     var xValue1 = $(selector).data('chart').scatter.xScale().invert(d.offsetX);
+                     var xValue2 = $(selector).data('chart').scatter.xScale().invert(d.offsetX + d.dx);
+                     minMaxX[0] = Math.min(xValue1, xValue2);
+                     minMaxX[1] = Math.max(xValue1, xValue2);
+                     var minMaxY = [];
+                     var yValue1 = $(selector).data('chart').scatter.yScale().invert(d.offsetY);
+                     var yValue2 = $(selector).data('chart').scatter.yScale().invert(d.offsetY - d.dy);
+                     minMaxY[0] = Math.min(yValue1, yValue2);
+                     minMaxY[1] = Math.max(yValue1, yValue2);
+                     d.dx = 0;
+                     d.dy = 0;
+                     var cfName = data.chartOptions['crossFilter'];
+                     filterUsingGlobalCrossFilter(cfName,minMaxX,minMaxY);                     
+                })
+            ).on('mousedown', function(d){
+                d.offsetX = d3.event.offsetX;
+                d.offsetY = d3.event.offsetY;
+            });            
         }
     })
 })(jQuery);
@@ -703,6 +763,8 @@ function bucketize(d,options){
     var yTotal = 0;
     var BUCKET_SIZE = defaultBucketsPerAxis;
     var minMaxX = options.minMaxX, minMaxY = options.minMaxY;
+    var xStops = options.xStops;
+    var yStops = options.yStops;
     if(options.bucketsPerAxis != null){
         BUCKET_SIZE = options.bucketsPerAxis;
     }
@@ -717,30 +779,7 @@ function bucketize(d,options){
     $.each(yBucket,function(i,d){
         yBucket[i] = [];
     });
-//    if(minMaxX == null){
-//        minMaxX = d3.extent(d,function(obj){
-//            return obj['x'];
-//        });
-//    }
-//    if(minMaxY == null){
-//        minMaxY = d3.extent(d,function(obj){
-//            return obj['y'];
-//        });
-//    }
-    //If only one node normalize to get the bubble in the range
-    if(minMaxX[0] == minMaxX[1]){
-        minMaxX = [minMaxX[0] * .9, minMaxX[0] * 1.1];
-    }
-    if(minMaxY[0] == minMaxY[1]){
-        minMaxY = [minMaxY[0] * .9, minMaxY[0] * 1.1];
-    }
-    avgX = (minMaxX[1] - minMaxX[0]) / BUCKET_SIZE;
-    avgY = (minMaxY[1] - minMaxY[0]) / BUCKET_SIZE;
-    //Start putting them in buckets
-    var xStops = [],yStops = [];
-    //Adding 1 to max value to pull in the last value in range
-    xStops = d3.range(minMaxX[0],minMaxX[1]+avgX,avgX);
-    yStops = d3.range(minMaxY[0],minMaxY[1]+avgY,avgY);
+
 //    var dataCF = crossfilter(d);
 //    var xDimension = dataCF.dimension(function(d) { return d.x; });
 //    var yDimension = dataCF.dimension(function(d) { return d.y; });
@@ -904,6 +943,9 @@ function doBucketization(data,chartOptions){
             minMaxX = minMax.minMaxX;
             minMaxY = minMax.minMaxY;
         }
+        //set forceX and  forceY to fix the axes boundaries
+        chartOptions.forceX = minMaxX;
+        chartOptions.forceY = minMaxY;        
         if(parentMinMax == null){
             parentMinMax = [];
         }
@@ -922,14 +964,28 @@ function doBucketization(data,chartOptions){
         } else {
             var bucketOptions = {parentMinMax:parentMinMax};
         }
-        //$(selector).data('origData',data);
-        
+        //If only one node normalize to get the bubble in the range
+        if(minMaxX[0] == minMaxX[1]){
+            minMaxX = [minMaxX[0] * .9, minMaxX[0] * 1.1];
+        }
+        if(minMaxY[0] == minMaxY[1]){
+            minMaxY = [minMaxY[0] * .9, minMaxY[0] * 1.1];
+        }
+        avgX = (minMaxX[1] - minMaxX[0]) / bucketsPerAxis;
+        avgY = (minMaxY[1] - minMaxY[0]) / bucketsPerAxis;
+        //Start putting them in buckets
+        var xStops = [],yStops = [];
+        //Adding 1 to max value to pull in the last value in range
+        xStops = d3.range(minMaxX[0],minMaxX[1]+avgX,avgX);
+        yStops = d3.range(minMaxY[0],minMaxY[1]+avgY,avgY);
         if(currLevel == null || currLevel < maxBucketizeLevel-1){
             for(var i = 0;i < d.length; i++ ) {
                 var values = [];
                 var options = {};
                 options.minMaxX = minMaxX;
                 options.minMaxY = minMaxY;
+                options.xStops = xStops;
+                options.yStops = yStops;
                 options.bucketsPerAxis = bucketsPerAxis;
                 d[i]['values'] = bucketize(d[i]['values'],options); 
                 var nodeCnt = d[i]['values'].length;

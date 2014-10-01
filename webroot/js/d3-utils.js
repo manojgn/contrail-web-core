@@ -655,6 +655,38 @@ function initScatterBubbleChart(selector, data, chart, chartOptions) {
     });
 }
 
+function setChartOptions(chart,chartOptions){
+    
+    chartOptions = ifNull(chartOptions,{});
+    // In case of dynamic axis while updating the chart with new parameters earlier properties 
+    // of the chart object will retain so we are setting to null if any property not exists
+    chart.tooltipRenderedFn(ifNull(chartOptions['tooltipRenderedFn'],null));
+    chart.forceX(ifNull(chartOptions['forceX'],null));
+    if(chartOptions['forceX'] != null) {
+        chart.xAxis.tickValues(chartOptions.xStops);
+    }    
+    chart.forceY(ifNull(chartOptions['forceY'],null));
+    if(chartOptions['forceY'] != null) {
+        chart.yAxis.tickValues(chartOptions.yStops);
+    }     
+    chart.seriesMap(ifNull(chartOptions['seriesMap'],null));
+    chart.scatter.xPositive(ifNull(chartOptions['xPositive'],null));
+    chart.scatter.yPositive(ifNull(chartOptions['yPositive'],null));
+    chart.scatter.addDomainBuffer(ifNull(chartOptions['addDomainBuffer'],null));
+    chart.scatter.xDomain(ifNull(chartOptions['xDomain'],null));
+    chart.scatter.yDomain(ifNull(chartOptions['yDomain'],null));
+    chart.xAxis.tickFormat(chartOptions['xLblFormat']);
+    chart.yAxis.tickFormat(chartOptions['yLblFormat']);
+    chart.xAxis.showMaxMin(false);
+    chart.yAxis.showMaxMin(false);
+    chart.yAxis.axisLabel(chartOptions['yLbl']);
+    chart.xAxis.axisLabel(chartOptions['xLbl']);
+    chart.dispatch.on('stateChange', chartOptions['stateChangeFunction']);
+    chart.scatter.dispatch.on('elementClick', chartOptions['elementClickFunction']);
+    chart.scatter.dispatch.on('elementMouseout',chartOptions['elementMouseoutFn']);
+    chart.scatter.dispatch.on('elementMouseover',chartOptions['elementMouseoverFn']);
+    return chart;
+}
 function formatSumBytes(d) {
     return formatBytes(d, false, false, 1);
 };
