@@ -266,10 +266,13 @@ function getDefaultGridConfig() {
 	                        e.stopPropagation();
                         break;
 	                    case 'multiselect':
-	                        gridHeader.find('.link-multiselectbox').toggle();
-	                        gridHeader.find('.input-multiselectbox').toggle();
-	                        if(gridHeader.find('.input-multiselectbox').is(':visible')){
-	                        	gridHeader.find('.input-multiselectbox .input-icon').data('contrailCheckedMultiselect').open();
+                            var linkMultiselectBox = $(this).parent().find('.link-multiselectbox'),
+                                inputMultiselectBox = $(this).parent().find('.input-multiselectbox');
+
+                            linkMultiselectBox.toggle();
+                            inputMultiselectBox.toggle();
+	                        if(inputMultiselectBox.is(':visible')){
+	                        	inputMultiselectBox.find('.input-icon').data('contrailCheckedMultiselect').open();
 	                        }
 	                        e.stopPropagation();
                         break;
@@ -991,7 +994,7 @@ function getDefaultGridConfig() {
                 	this.refreshDetailView(refreshDetailTemplateFlag);
                 	var cgrids = [];
                 	$.each(checkedRows, function(key,val){
-                		ids.push(val.cgrid);
+                        cgrids.push(val.cgrid);
                 	});
                 	this.setCheckedRows(cgrids);
                 }, 
@@ -1135,14 +1138,15 @@ function getDefaultGridConfig() {
         
         function addGridHeaderActionCheckedMultiselect(key, actionConfig, gridContainer) {
             var actions = actionConfig.actions,
-                actionId = gridContainer.prop('id') + '-header-action-' + key;
+                actionId = (contrail.checkIfExist(actionConfig.actionId)) ? actionConfig.actionId : gridContainer.prop('id') + '-header-action-' + key;
             var actionsTemplate = '<div id="' + actionId + '" class="widget-toolbar pull-right"> \
-		            <a class="widget-toolbar-icon link-multiselectbox" data-action="multiselect"> \
+		            <a class="widget-toolbar-icon link-multiselectbox' + (contrail.checkIfExist(actionConfig.disabledLink) ? ' disabled-link' : '') + '" \
+		            title="' + actionConfig.title + '" data-action="multiselect"> \
 		            <i class="' + actionConfig.iconClass + '"></i> \
 		        </a> \
 		        <span class="input-multiselectbox hide"> \
 		            <span class="input-icon"> \
-		            	<i class="widget-toolbar-icon icon-filter"></i> \
+		            	<i class="widget-toolbar-icon ' + actionConfig.iconClass + '"></i> \
 		            </span> \
 		        </span> \
 		    </div>';

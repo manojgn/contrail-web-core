@@ -680,7 +680,7 @@
             template = null, preChecked = [];
 
         if (contrail.checkIfExist(config.data)) {
-            config.data = formatData(config.data, config);
+            config.data = formatData((contrail.checkIfFunction(parse)) ? parse(config.data) : config.data, config);
         }
 
         if (!contrail.checkIfExist(self.data('contrailCheckedMultiselect'))) {
@@ -689,6 +689,8 @@
              */
             if(contrail.checkIfExist(config.dataSource)){
                 contrail.ajaxHandler(config.dataSource, null, successHandler, failureHandler);
+            } else {
+                initCheckedMultiselect(config, defaultFilterConfig);
             }
 
             function successHandler(response){
@@ -696,7 +698,6 @@
                     throw "Error getting data from server";
                 }
                 var parsedData = (contrail.checkIfFunction(parse)) ? parse(response) : response;
-
                 config.data = formatData(parsedData, config);
                 initCheckedMultiselect(config, defaultFilterConfig);
             };
