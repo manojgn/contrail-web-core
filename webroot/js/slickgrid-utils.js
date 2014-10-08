@@ -101,6 +101,10 @@ function getDefaultGridConfig() {
         gridOptions = gridConfig.body.options;
         gridConfig.footer = ($.isEmptyObject(gridConfig.footer)) ? false : gridConfig.footer;
 
+        if(contrail.checkIfKeyExistInObject(true, customGridConfig, 'footer.pager.options.pageSizeSelect')) {
+            gridConfig.footer.pager.options.pageSizeSelect = customGridConfig.footer.pager.options.pageSizeSelect;
+        }
+
         //Local Datasource means the client-side data with client-side pagination if footer initialized
         if (contrail.checkIfExist(gridDataSource.data)) {
             dataView = new ContrailDataView();
@@ -322,6 +326,9 @@ function getDefaultGridConfig() {
                 		if(typeof val.searchable == 'undefined' || val.searchable != false)
                             searchColumns.push(val);
                 	}
+                    if(!contrail.checkIfExist(val.tooltip)) {
+                        val.toolTip = val.name;
+                    }
                 });
             }
 
