@@ -661,14 +661,22 @@
                 //header: false,
                 minWidth: 'auto',
                 control: false,
-                selectedList: 3
+                selectedList: 3,
+                tristate: false
             },
             defaultFilterConfig = {
                 label: false
             },
             config = $.extend(true, defaultConfig, config),
             defaultFilterConfig = $.extend(true, defaultFilterConfig, config.filterConfig),
-            template = null, preChecked = [];
+            template = null, preChecked = [],
+            multiSelectMenu = null;
+
+            config.optgrouptoggle = function(event, ui) {
+                if(config.tristate) {
+                    multiSelectMenu.find('input[type="checkbox"]').tristate('state', ui.checked);
+                }
+            }
 
         function successHandler(response){
             if(!contrail.checkIfExist(response)){
@@ -691,8 +699,12 @@
              * Appending controls and related events
              */
 
-            var multiSelectMenu = self.find('select').multiselect("widget");
-            multiSelectMenu.find('input[type="checkbox"]').addClass('ace-input');
+            multiSelectMenu = self.find('select').multiselect("widget");
+            if(config.tristate){
+                multiSelectMenu.find('input[type="checkbox"]').tristate({state: null}).addClass('ace-input-tristate');
+            } else {
+                multiSelectMenu.find('input[type="checkbox"]').addClass('ace-input');
+            }
             multiSelectMenu.find('input[type="checkbox"]').next('span').addClass('ace-lbl');
 
             if(config.control != false) {
@@ -705,7 +717,12 @@
 
                     if (contrail.checkIfFunction(controlValue.click)) {
                         btn.on('click', function () {
-                            var checkedRows = self.find('select').multiselect('getChecked')
+                            var checkedRows = [];
+                            if(config.tristate){
+                                checkedRows = multiSelectMenu.find('input[type="checkbox"]:determinate');
+                            } else {
+                                checkedRows = self.find('select').multiselect('getChecked');
+                            }
                             controlValue.click(self, checkedRows);
                             self.find('select').multiselect('close');
                         })
@@ -719,11 +736,21 @@
                 getPreChecked: function () {
                     return preChecked;
                 },
-                setChecked   : function (checkedElements) {
+                setChecked: function (checkedElements) {
                     this.uncheckAll();
                     $.each(checkedElements, function (elementKey, elementValue) {
                         $(elementValue).click();
                     });
+                },
+                setCheckedState: function (state) {
+                    this.uncheckAll();
+                    if(config.tristate) {
+                        multiSelectMenu.find('input[type="checkbox"]').tristate('state', state)
+                    } else {
+                        if(state) {
+                            this.checkAll();
+                        }
+                    }
                 }
             }));
         };
