@@ -662,7 +662,8 @@
                 minWidth: 'auto',
                 control: false,
                 selectedList: 3,
-                tristate: false
+                tristate: false,
+                emptyOptionText: 'No option found.'
             },
             defaultFilterConfig = {
                 label: false
@@ -693,13 +694,19 @@
             template = contrail.getTemplate4Id('checked-multiselect-optgroup-template');
             $(self).append(template(config));
 
+            if (config.data.length == 0) {
+                config.height = 'auto';
+            }
+
             var multiselect = self.find('select').multiselect(config).multiselectfilter(defaultFilterConfig);
             preChecked = self.find('select').multiselect('getChecked');
-            /*
-             * Appending controls and related events
-             */
 
             multiSelectMenu = self.find('select').multiselect("widget");
+
+            if (config.data.length == 0) {
+                multiSelectMenu.append('<p class="padding-0-0-5 margin-0-5">'+ config.emptyOptionText + '</p>')
+            }
+
             if(config.tristate){
                 multiSelectMenu.find('input[type="checkbox"]').tristate({state: null}).addClass('ace-input-tristate');
             } else {
@@ -707,6 +714,9 @@
             }
             multiSelectMenu.find('input[type="checkbox"]').next('span').addClass('ace-lbl');
 
+            /*
+             * Appending controls and related events
+             */
             if(config.control != false) {
                 var msControls = $('<div class="row-fluid ui-multiselect-controls""></div>');
 
