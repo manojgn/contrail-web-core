@@ -672,9 +672,9 @@
             template = null, preChecked = [],
             multiSelectMenu = null;
 
-            config.optgrouptoggle = function(event, ui) {
-                if(config.tristate) {
-                    multiSelectMenu.find('input[type="checkbox"]').tristate('state', ui.checked);
+            if(config.tristate) {
+                config.optgrouptoggle = function(event, ui) {
+                   multiSelectMenu.find('input[type="checkbox"]').tristate('state', ui.checked);
                 }
             }
 
