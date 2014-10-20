@@ -755,11 +755,18 @@
                 setCheckedState: function (state) {
                     this.uncheckAll();
                     if(config.tristate) {
-                        multiSelectMenu.find('input[type="checkbox"]').tristate('state', state)
+                        if (typeof state === "boolean" || state == null) {
+                            multiSelectMenu.find('input[type="checkbox"]').tristate('state', state)
+                        } else if (typeof state === "object") {
+                            $.each(state, function (stateKey, stateValue) {
+                                $(multiSelectMenu.find('input[type="checkbox"]')[stateKey]).tristate('state', stateValue);
+                            });
+                        }
                     } else {
-                        if(state) {
+                        if(typeof state === "boolean" && state) {
                             this.checkAll();
                         }
+                        //TODO handle else if typeof state === object
                     }
                 }
             }));
