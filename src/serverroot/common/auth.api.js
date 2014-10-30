@@ -91,8 +91,8 @@ function getDomainList (req, callback)
     });
 }
 
-function getNewTokenObjByToken (tokenId, tenantId, forceAuth, callback) {
-    authMethodApi.getUserAuthDataByAuthObj(tenantId, tenantId, forceAuth,
+function getNewTokenObjByToken (authObj, callback) {
+    authMethodApi.getUserAuthDataByAuthObj(authObj,
                                        function(err, data) {
         callback(err, data);
     });
@@ -128,6 +128,11 @@ function getServiceCatalog (req, callback)
     });
 }
 
+function getUIRolesByExtRoles (extRoles)
+{
+    return authMethodApi.getUserRoleByAuthResponse(extRoles);
+}
+
 exports.doAuthenticate = doAuthenticate;
 exports.getTenantList = getTenantList;
 exports.getTokenObj = getTokenObj;
@@ -139,4 +144,6 @@ exports.getServiceCatalog = getServiceCatalog;
 exports.getDomainList = getDomainList;
 exports.getProjectList = getProjectList;
 exports.isDefaultDomain = isDefaultDomain;
+exports.getNewTokenObjByToken = getNewTokenObjByToken;
+exports.getUIRolesByExtRoles = getUIRolesByExtRoles;
 
