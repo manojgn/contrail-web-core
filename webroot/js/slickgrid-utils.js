@@ -653,9 +653,11 @@ function getDefaultGridConfig() {
                         addGridRowActionDroplist(actionCellArray, gridContainer, args.row);
                         var offset = $(e.target).offset();
                         $('#' + gridContainer.prop('id') + '-action-menu-' + args.row).css({
-                            top: offset.top+20 + 'px',
-                            left: offset.left-155 + 'px'
-                        }).show();
+                            top: (offset.top + 20) + 'px',
+                            left: (offset.left - 155) + 'px'
+                        }).show(function() {
+                            window.scrollTo(0, (offset.top + 20));
+                        });
                         e.stopPropagation();
                         initOnClickDocument('#' + gridContainer.prop('id') + '-action-menu-' + args.row,function(){
                             $('#' + gridContainer.prop('id') + '-action-menu-' + args.row).hide();
