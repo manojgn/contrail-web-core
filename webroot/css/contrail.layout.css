@@ -73,6 +73,7 @@ body {
   font-family: 'Open Sans';
   font-size: 13px;
   color: #393939;
+  overflow-y: scroll;
 }
 body:before {
   content: "";
