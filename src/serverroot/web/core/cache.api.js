@@ -6,7 +6,7 @@ var redisSub = require('./redisSub')
 	, global = require('../../common/global')
 	, redis = require("redis")
 	, longPoll = require('./longPolling.api')
-	, config = require('../../../../config/config.global.js')
+	, config = process.mainModule.exports.config
 	, commonUtils = require('../../utils/common.utils')
 	, logutils = require('../../utils/log.utils')
 	, util = require('util')
@@ -329,6 +329,11 @@ function createReqData (req, type, jobName, reqUrl, runCount, defCallback,
 			saveChannelKey: saveChannelKey,
 			reqBy: reqBy,
 			userRoles: req.session.userRoles,
+            tokenObjs: req.session.tokenObjs,
+            cookies: {
+                domain: req.cookies.domain,
+                project: req.cookies.project,
+            },
 			appData: appData
 		}
 	};

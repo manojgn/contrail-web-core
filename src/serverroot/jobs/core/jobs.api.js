@@ -7,7 +7,7 @@ var jobsApi = module.exports;
 var redis = require("redis")
 	, kue = require('kue')
 	, assert = require('assert')
-	, config = require('../../../../config/config.global.js')
+	, config = process.mainModule.exports.config
 	, logutils = require('../../utils/log.utils')
 	, util = require('util')
     , redisPub = require('./redisPub')
@@ -165,6 +165,7 @@ function doJobExist (jobName, callback)
  */
 function createJob (jobName, jobTitle, jobPriority, delayInMS, runCount, taskData)
 {
+    taskData['genBy'] = global.service.MIDDLEWARE;
     doJobExist(jobName, function(err, jobExists) {
         if (true == jobExists) {
             runCount = 1;
