@@ -4,13 +4,12 @@
 
 var http = require('http'),
     https = require('https'),
-    config = require('../../../../config/config.global.js'),
     logutils = require('../../utils/log.utils'),
     messages = require('../../common/messages'),
     util = require('util'),
     redis = require("redis"),
     global = require('../../common/global'),
-    config = require('../../../../config/config.global.js'),
+    config = process.mainModule.exports.config,
     longPoll = require('../core/longPolling.api'),
     logutils = require('../../utils/log.utils'),
     commonUtils = require('../../utils/common.utils'),
@@ -169,9 +168,9 @@ getUserRoleByAuthResponse = function(resRoleList) {
     return global.STR_ROLE_USER;
 }
 
-exports.authenticate = function (req, res) {
+exports.authenticate = function (req, res, appData) {
     /* Call module independent API */
-    authApi.doAuthenticate(req, res, function(err, data) {
+    authApi.doAuthenticate(req, res, appData, function(err, data) {
         /* Already logged */
         logutils.logger.debug('Getting err ' + err);
     });

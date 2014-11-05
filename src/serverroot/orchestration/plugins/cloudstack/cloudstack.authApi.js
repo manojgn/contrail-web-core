@@ -7,7 +7,7 @@
  * cloudstack
  */
 
-var config = require('../../../../../config/config.global'),
+var config = process.mainModule.exports['config'],
     global = require('../../../common/global'),
     messages = require('../../../common/messages'),
     logutils = require('../../../utils/log.utils'),
@@ -82,7 +82,7 @@ function updateUserKeys (req, userName, userLists)
     req.session['userKey']['secretKey'] = users[i]['secretkey'];
 }
 
-function authenticate (req, res, callback)
+function authenticate (req, res, appData, callback)
 {
     var self = this,
         post = req.body,
