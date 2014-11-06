@@ -1118,10 +1118,6 @@ function getDefaultGridConfig() {
                     }
                 });
             }
-
-            gridContainer.find('a[title]').tooltip({
-                placement: 'bottom'
-            })
         };
 
         function addGridHeaderAction(key, actionConfig, gridContainer) {
