@@ -2101,6 +2101,23 @@ color: #b94a48;
     color: #3182bd;
 }
 
+/* Server Manager Page Styles */
+
+.detail-header-row {
+  border-bottom: 1px solid #eee;
+}
+
+.group-detail-action-item {
+    margin: 0 8px;
+    color: #777;
+}
+.group-detail-action-item:hover {
+    color: #333;
+}
+.group-detail-action-item.selected, .group-detail-action-item.selected:hover {
+    color: #3182bd;
+}
+
 /* Checked Multiselect styles */
 
 .ui-multiselect { padding:3px 0 3px 4px; text-align:left; border: 1px solid #dadada; color: #777; }
