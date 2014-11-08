@@ -2084,22 +2084,6 @@ color: #b94a48;
 .wizard > .content > .body input {
     display: inline;
 }
-/* Server Manager Page Styles */
-
-.detail-header-row {
-  border-bottom: 1px solid #eee;
-}
-
-.group-detail-action-item {
-    margin: 0 8px;
-    color: #777;
-}
-.group-detail-action-item:hover {
-    color: #333;
-}
-.group-detail-action-item.selected, .group-detail-action-item.selected:hover {
-    color: #3182bd;
-}
 
 /* Server Manager Page Styles */
 
