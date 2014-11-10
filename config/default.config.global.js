@@ -264,7 +264,7 @@ config.physicaldevices.interface_delimiters = ['.', ':'];
 * Below are the disabled list of UI features.
 *****************************************************************************/
 config.features = {};
-config.features.disabled = ['config_pd','mon_infra_underlay'];
+config.features.disabled = ['config_pd','config_pd_virtualRouters','mon_infra_underlay'];
 
 /*****************************************************************************
 * Below are the configurations used only for ui
