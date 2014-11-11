@@ -1843,6 +1843,7 @@ color: #b94a48;
   text-shadow: none;
   padding: 5px;
   border: 1px solid #ccc;
+  font-weight: normal;
 }
 /*policy rule styles */
 
@@ -2135,22 +2136,25 @@ color: #b94a48;
 .wizard .stepInfo p .selectedServerCount{
     color: #3182bd;
 }
+.wizard > .content > .body input {
+    display: inline;
+}
 
 /* Server Manager Page Styles */
 
 .detail-header-row {
   border-bottom: 1px solid #eee;
 }
-.horizontal-actions {
-  margin: 5px 0 0;
+
+.group-detail-action-item {
+    margin: 0 8px;
+    color: #777;
 }
-.horizontal-actions .horizontal-action-item {
-  color: #777;
-  padding: 5px 8px;
-  border-left: 1px solid #eee;
+.group-detail-action-item:hover {
+    color: #333;
 }
-.horizontal-actions .horizontal-action-item:hover {
-  color: #3182bd;
+.group-detail-action-item.selected, .group-detail-action-item.selected:hover {
+    color: #3182bd;
 }
 
 /* Checked Multiselect styles */
