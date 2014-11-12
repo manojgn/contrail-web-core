@@ -1127,7 +1127,12 @@ margin-right: 15px;
 /*
  Editable Slick Grid
 */
-
+.contrail-grid-editable {
+  margin-bottom: 10px;
+}
+.contrail-grid-editable .slick-header-column.ui-state-default {
+  color: #3182bd;
+}
 .contrail-grid-editable .slick-cell {
     color: #3182bd;
     white-space: nowrap;
