@@ -9,12 +9,12 @@
 var config = process.mainModule.exports['config'];
 var orch = require('../orchestration/orchestration.api');
 
-var orchModel = orch.getOrchestrationModel();
+var orchModels = orch.getOrchestrationModels();
 
 var computeApi;
-if (orchModel == 'openstack') {
+if (-1 != orchModels.indexOf('openstack')) {
     computeApi = require('../orchestration/plugins/openstack/nova.api');
-} else if ('none' == orchModel) {
+} else if (-1 != orchModels.indexOf('none')) {
     computeApi = require('../orchestration/plugins/no-orch/noOrchestration.api');
 }
 
@@ -74,6 +74,20 @@ function getAvailabilityZoneList(req, callback)
     });
 }
 
+function portAttach (req, callback)
+{
+    computeApi.portAttach(req, function(err, data) {
+        callback(err, data);
+    });
+}
+
+function portDetach (req, callback)
+{
+    computeApi.portDetach(req, function(err, data) {
+        callback(err, data);
+    });
+}
+
 exports.apiGet = apiGet;
 exports.apiPost = apiPost;
 exports.launchVNC = launchVNC;
@@ -82,3 +96,6 @@ exports.getVMStatsByProject = getVMStatsByProject;
 exports.getFlavors = getFlavors;
 exports.getOSHostList = getOSHostList;
 exports.getAvailabilityZoneList = getAvailabilityZoneList;
+exports.portAttach = portAttach;
+exports.portDetach = portDetach;
+
