@@ -1318,16 +1318,18 @@ function MenuHandler() {
 
             function loadViewResources(menuObj,hash) {
                 $.each(getValueByJsonPath(menuObj,'resources;resource',[]),function(idx,currResourceObj) {
-                    if (!(currResourceObj['view'] instanceof Array)) {
-                        currResourceObj['view'] = [currResourceObj['view']];
-                    }
-                    if(currResourceObj['view'] != null && currResourceObj['view'].length > 0 && currResourceObj['view'][0] != null) {
-                        $.each(currResourceObj['view'], function () {
-                            var viewDeferredObj = $.Deferred();
-                            viewDeferredObjs.push(viewDeferredObj);
-                            var viewPath = currResourceObj['rootDir'] + '/views/' + this + '?built_at=' + built_at;
-                            templateLoader.loadExtTemplate(viewPath, viewDeferredObj, hash);
-                        });
+                    if (currResourceObj['view'] != null) {
+                        if (!(currResourceObj['view'] instanceof Array)) {
+                            currResourceObj['view'] = [currResourceObj['view']];
+                        }
+                        if(currResourceObj['view'] != null && currResourceObj['view'].length > 0 && currResourceObj['view'][0] != null) {
+                            $.each(currResourceObj['view'], function () {
+                                var viewDeferredObj = $.Deferred();
+                                viewDeferredObjs.push(viewDeferredObj);
+                                var viewPath = currResourceObj['rootDir'] + '/views/' + this + '?built_at=' + built_at;
+                                templateLoader.loadExtTemplate(viewPath, viewDeferredObj, hash);
+                            });
+                        }
                     }
                 })
             }
@@ -1352,21 +1354,22 @@ function MenuHandler() {
             
             function loadJsResources(menuObj) {
                 $.each(getValueByJsonPath(menuObj,'resources;resource',[]),function(idx,currResourceObj) {
-                    if (!(currResourceObj['js'] instanceof Array)) 
-                        currResourceObj['js'] = [currResourceObj['js']];
-                    var isLoadFn = currResourceObj['loadFn'] != null ? true : false;
-                    var isReloadRequired = true;
-                    //Restrict not re-loading scripts only for monitor infrastructure and monitor networks for now
-                    if(NO_RELOAD_JS_CLASSLIST.indexOf(currResourceObj['class']) != -1) {
-                        isReloadRequired = false;
+                    if (currResourceObj['js'] != null) {
+                        if (!(currResourceObj['js'] instanceof Array)) 
+                            currResourceObj['js'] = [currResourceObj['js']];
+                        var isLoadFn = currResourceObj['loadFn'] != null ? true : false;
+                        var isReloadRequired = true;
+                        //Restrict not re-loading scripts only for monitor infrastructure and monitor networks for now
+                        if(currResourceObj['class'] == 'infraMonitorView' || currResourceObj['class'] == 'tenantNetworkMonitorView')
+                            isReloadRequired = false;
+                        $.each(currResourceObj['js'], function () {
+                            //Load the JS file only if it's not loaded already
+                            //if (window[currResourceObj['class']] == null)
+                            if(($.inArray(currResourceObj['rootDir'] + '/js/' + this,globalObj['loadedScripts']) == -1) ||
+                                (isLoadFn == true) || (isReloadRequired == true))
+                                deferredObjs.push(getScript(currResourceObj['rootDir'] + '/js/' + this));
+                        });
                     }
-                    $.each(currResourceObj['js'], function () {
-                        //Load the JS file only if it's not loaded already
-                        //if (window[currResourceObj['class']] == null)
-                        if(($.inArray(currResourceObj['rootDir'] + '/js/' + this,globalObj['loadedScripts']) == -1) ||
-                            (isLoadFn == true) || (isReloadRequired == true))
-                            deferredObjs.push(getScript(currResourceObj['rootDir'] + '/js/' + this));
-                    });
                 });
             }
 
