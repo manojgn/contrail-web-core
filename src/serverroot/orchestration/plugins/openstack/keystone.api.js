@@ -718,7 +718,8 @@ function getV2Token (authObj, callback)
     var forceAuth   = authObj['forceAuth'];
 
     var projEntry = getTokenIdByProject(req, tenantId);
-    if (null != projEntry) {
+    if ((null != projEntry) && ((null == forceAuth) ||
+        (false == forceAuth))) {
         logutils.logger.debug("We are having project already in DB:" +
                               tenantId);
         callback(null, projEntry);
@@ -754,8 +755,6 @@ function getTokenIdByProject (req, tenantName)
 function getUserAuthData (req, tenantName, callback)
 {
     var token = getTokenIdByProject(req, tenantName);
-    callback(null, token);
-    return;
     var lastTokenUsed = getLastIdTokenUsed(req);
     var authObj = {};
     authObj['tokenid'] = token.id;
@@ -799,6 +798,48 @@ function getUserAuthDataByAuthObj (authObj, callback)
         }
         callback(null, data);
     });
+}
+
+function getUserAuthDataByConfigAuthObj (authObj, callback)
+{
+    var error = new appErrors.RESTServerError("auth object not found in config");
+    try {
+        var authParams = require('../../../../../config/userAuth');
+    } catch(e) {
+        logutils.logger.error("userAuth.js not found");
+        callback(error, null);
+    }
+    if (null == authObj) {
+        authObj = {};
+    }
+    if (null == authObj['username']) {
+        if ((null != authParams) &&
+            (null != authParams.admin_user)) {
+            authObj['username'] = authParams.admin_user;
+        } else {
+            callback(error, null);
+            return;
+        }
+    }
+    if (null == authObj['password']) {
+        if ((null != authParams) &&
+            (null != authParams.admin_password)) {
+            authObj['password'] = authParams.admin_password;
+        } else {
+            callback(error, null);
+            return;
+        }
+    }
+    if (null == authObj['tenant']) {
+        if ((null != authParams) &&
+            (null != authParams.admin_tenant_name)) {
+            authObj['tenant'] = authParams.admin_tenant_name;
+        } else {
+            callback(error, null);
+            return;
+        }
+    }
+    getUserAuthDataByAuthObj(authObj, callback);
 }
 
 function getServiceCatalog (req, callback)
@@ -1811,4 +1852,5 @@ exports.getUserAuthDataByAuthObj = getUserAuthDataByAuthObj;
 exports.getUserRoleByAuthResponse = getUserRoleByAuthResponse;
 exports.getCookieObjs = getCookieObjs;
 exports.getSessionExpiryTime = getSessionExpiryTime;
+exports.getUserAuthDataByConfigAuthObj = getUserAuthDataByConfigAuthObj;
 

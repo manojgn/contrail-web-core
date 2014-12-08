@@ -61,16 +61,18 @@ function doNovaOpCb (reqUrl, apiProtoIP, tenantId, req, novaCallback, stopRetry,
                         function(err, tokenObj) {
         if ((null != err) || (null == tokenObj) || (null == tokenObj.id)) {
             if (stopRetry) {
-                console.log("We are done retrying for tenantId:" + tenantId +
-                            " with err:" + err);
+                logutils.logger.debug("We are done retrying for tenantId:" +
+                                      tenantId + " with err:" + err);
                 commonUtils.redirectToLogout(req, req.res);
             } else {
                 /* Retry once again */
-                console.log("We are about to retry for tenantId:" + tenantId);
+                logutils.logger.debug("We are about to retry for tenantId:" +
+                                      tenantId);
                 novaCallback(reqUrl, apiProtoIP, req, callback, true, appHeaders);
             }
         } else {
-            console.log("doNovaOpCb() success with tenantId:" + tenantId);
+            logutils.logger.debug("doNovaOpCb() success with tenantId:" +
+                                  tenantId);
             callback(err, tokenObj);
         }
     });
@@ -662,9 +664,9 @@ function portAttachSendResp (err, data, apiVer, callback)
     portAttachCB(err, data, callback);
 }
 
-function portAttach (req, callback)
+function portAttach (req, body, callback)
 {
-    var postData = req.body;
+    var postData = body;
     var portID = postData.portID;
     var netID = postData.netID;
     var fixedIP = postData.fixedIP;
@@ -734,11 +736,9 @@ function portAttach (req, callback)
     }); 
 }
 
-function portDetach (req, callback)
+function portDetach (req, portID, vmUUID, callback)
 {
     var appHeaders = {};
-    var vmUUID = req.param('vmUUID');
-    var portID = req.param('portID');
     if (null == vmUUID) {
         var error = new appErrors.RESTServerError('Server not specified');
         callback(error, null);

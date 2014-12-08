@@ -888,7 +888,6 @@ function callAPIServerByParam (apiCallback, dataObj, ignoreError, callback)
     var headers = dataObj['headers'];
     var data    = dataObj['data'];
     var appData = dataObj['appData'];
-    // console.log("Getting SERVER OBJ:", method, reqUrl, headers, data, appData);
 
     if ((global.HTTP_REQUEST_PUT == method) ||
         (global.HTTP_REQUEST_POST == method)) {
@@ -1212,7 +1211,7 @@ function getApiPostData (url, postData)
     }
 }
 
-function redirectToLogout (req, res)
+function redirectToLogout (req, res, callback)
 {
     if(req.session.loggedInOrchestrationMode == 'vcenter' || req['originalUrl'].indexOf('/vcenter') > -1) {
         redURL = '/vcenter/logout';
@@ -1220,15 +1219,16 @@ function redirectToLogout (req, res)
         redURL = '/logout';
     }
     redirectToURL(req, res, redURL);
+    if (null != callback) {
+        callback();
+    }
 }
 
 function redirectToLogin (req, res)
 {
     if(req.session.loggedInOrchestrationMode == 'vcenter') {
-        console.log("In vcenter login");
         redURL = '/vcenter/login';
     } else {
-        console.log("In login");
         redURL = '/login';
     }
     redirectToURL(req, res, redURL);
@@ -1238,11 +1238,9 @@ function redirectToURL(req, res, redURL)
 {
     var ajaxCall = req.headers['x-requested-with'];
     if (ajaxCall == 'XMLHttpRequest') {
-        console.log("Getting 307");
        res.setHeader('X-Redirect-Url', redURL);
        res.send(307, '');
     } else {
-        console.log("REDIRECT");
        res.redirect(redURL);
     }
 }
@@ -1344,8 +1342,6 @@ function getWebServerInfo (req, res, appData)
     serverObj ['serverUTCTime'] = commonUtils.getCurrentUTCTime();
     serverObj['hostName'] = os.hostname();
     serverObj['role'] = req.session.userRole;
-    serverObj['underlayEnabled'] = ((null != config.underlay) && 
-            (null != config.underlay.enabled)) ? config.underlay.enabled  : true;
     serverObj['featurePkg'] = {};
     serverObj['uiConfig'] = ui; 
     serverObj['loggedInOrchestrationMode'] = req.session.loggedInOrchestrationMode;
@@ -1428,13 +1424,15 @@ function getAllJsons (menuDir, callback)
     });
 }
 
-function createEmptyResourceObj ()
+function createEmptyResourceObj (obj)
 {
-    var obj = {};
+    if (null == obj) {
+        obj = {};
+    }
     obj['resources'] = [];
     obj['resources'][0] = {};
     obj['resources'][0]['resource'] = [];
-    return obj;
+    return obj['resources'];
 }
 
 function mergeResourceObjs (obj1, obj2)
@@ -1443,7 +1441,7 @@ function mergeResourceObjs (obj1, obj2)
         return obj1;
     }
     if (null == obj1['resources']) {
-        obj1 = createEmptyResourceObj();
+        obj1['resources'] = createEmptyResourceObj(obj1);
     }
     obj1['resources'][0]['resource'] =
         obj1['resources'][0]['resource'].concat(obj2['resources'][0]['resource']);
@@ -1581,7 +1579,9 @@ function mergeMenuObjects (menuObj1, menuObj2)
                         var newObj = mergeMenuItems(items1[j], items2[i]);
                         items1[j] = newObj['obj'];
                         objFound = newObj['found'];
-                        break;
+                        if (true == objFound) {
+                            break;
+                        }
                     }
                     if (false == objFound) {
                         items1.push(items2[i]); 

@@ -24,6 +24,14 @@
         var self = this;
         option = (typeof option === "undefined") ? {} : option;
         self.tabs(option);
+        self.data('contrailTabs', {
+        	startLoading: function(selectedTabLinkId){
+        		$(selectedTabLinkId).prepend('<i class="icon-spinner icon-spin contrail-tabs-loading"></i>');
+        	},
+        	endLoading: function(selectedTabLinkId){
+        		$(selectedTabLinkId).find('.contrail-tabs-loading').remove();
+        	}
+        });
         return self;
     };
     
@@ -994,6 +1002,7 @@ function constructSelect2(self, defaultOption, args) {
         if(typeof option.data != "undefined") {
             option.data = formatData(option.data,option);
             self.select2(option)
+                .off("change")
                 .on("change", function(e) {
                     if (typeof option.change !== 'undefined' && typeof option.change === 'function') {
                         option.change(e);
@@ -1061,6 +1070,7 @@ function constructSelect2(self, defaultOption, args) {
                 }
 
                 self.select2(option)
+                    .off("change")
                     .on("change", function(e) {
                         if (typeof option.change !== 'undefined' && typeof option.change === 'function') {
                             option.change(e);

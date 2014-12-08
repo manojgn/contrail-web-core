@@ -60,6 +60,16 @@ var infraAlertMsgs = {
 ////Contant to check if a nodemanger is installed in the setup or not and use is appropriately
 var IS_NODE_MANAGER_INSTALLED = true;
 
+var NO_RELOAD_JS_CLASSLIST = [
+    'infraMonitorView',
+    'tenantNetworkMonitorView',
+    'clustersPageLoader',
+    'serversPageLoader',
+    'imagesPageLoader',
+    'packagesPageLoader',
+    'smLoader'
+];
+
 //Sets the following prototype if not defined already.
 //Array.prototype.unique - returns unique values of an array.
 //Array.prototype.diff - difference between two arrays.
@@ -157,6 +167,41 @@ var defColors = ['#1c638d', '#4DA3D5'];
             $(this).find('span').on('click', function () {
                 if ((data['link'] != null) && (data['link']['hashParams'] != null))
                     layoutHandler.setURLHashObj(data['link']['hashParams']);
+            });
+        },
+        initPortDistributionCharts:function (data) {
+            var chartsTemplate = contrail.getTemplate4Id('port-distribution-charts-template');
+            var networkChart, chartSelector;
+            if ((data['chartType'] == null) && ($.inArray(ifNull(data['context'], ''), ['domain', 'network', 'connected-nw', 'project', 'instance']) > -1)) {
+                networkChart = true;
+                chartSelector = '.port-distribution-chart';
+            } else {
+                networkChart = false;
+                //chartSelector = '.d3-chart';
+                chartSelector = '.port-distribution-chart';
+            }
+            $(this).html(chartsTemplate(data));
+            if (networkChart == true) {
+                //Add durationStr
+                $.each(data['d'], function (idx, obj) {
+                    if (ifNull(obj['duration'], true)) {
+                        if (obj['title'].indexOf('(') < 0)
+                            obj['title'] += durationStr;
+                    }
+                });
+                //Set the chart height to parent height - title height
+            }
+            //$(this).find('.stack-chart').setAvblSize();
+            var charts = $(this).find(chartSelector);
+            $.each(charts, function (idx, chart) {
+                //Bind the function to pass on the context of url & objectType to schema parse function
+                var chartData = data['d'][idx];
+                var chartType = ifNull(chartData['chartType'], '');
+                var fields;
+                var objectType = chartData['objectType'];
+                //Load asynchronously
+                initDeferred($.extend({},chartData,{selector:$(this),renderFn:'initScatterChart'}));
+                //If title is clickable
             });
         },
         initCharts:function (data) {
@@ -278,6 +323,10 @@ var defColors = ['#1c638d', '#4DA3D5'];
             $(this).find('.summary-charts').each(function (idx) {
                 var contextObj = getContextObj(data);
                 $(this).initCharts($.extend({}, data['charts'][idx], {context:data['context']}, contextObj));
+            });
+            $(this).find('.port-distribution-charts').each(function (idx) {
+                var contextObj = getContextObj(data);
+                $(this).initPortDistributionCharts($.extend({}, data['charts'][idx], {context:data['context']}, contextObj));
             });
             $(this).find('.z-grid').each(function (idx) {
                 //If grid height is set pass height as 100%
@@ -569,7 +618,9 @@ var defColors = ['#1c638d', '#4DA3D5'];
                 if(data['loadedDeferredObj'] != null)
                     $(this).data('loadedDeferredObj',data['loadedDeferredObj']);
                 //calling refreshview, because sometimes the grid seems cluttered with data in the datasource
-                cGrid.refreshView();
+                if(cGrid != null) {
+                    cGrid.refreshView();
+                }
             } else {
                 $(this).contrailGrid();
             }
@@ -866,6 +917,12 @@ function pushBreadcrumb(breadcrumbsArr) {
     }
 }
 
+function pushBreadcrumbDropdown(id){
+	$('#breadcrumb').children('li').removeClass('active');
+	$('#breadcrumb').children('li:last').append('<span class="divider"><i class="icon-angle-right"></i></span>');
+	$('#breadcrumb').append('<li class="active"><div id="' + id + '"></div></li>');
+}
+
 function MenuHandler() {
     var self = this;
     var menuObj;
@@ -879,6 +936,7 @@ function MenuHandler() {
                 menuObj = $.xml2json(xml);
                 webServerDefObj.always(function(){
                     processXMLJSON(menuObj, disabledFeatures);
+                    globalObj['webServerInfo']['disabledFeatures'] = ifNull(disabledFeatures,[]);
                     var menuShortcuts = contrail.getTemplate4Id('menu-shortcuts')(menuHandler.filterMenuItems(menuObj['items']['item'],'menushortcut'));
                     $("#sidebar-shortcuts").html(menuShortcuts);
                     ['items']['item'] = menuHandler.filterMenuItems(menuObj['items']['item']);
@@ -926,12 +984,6 @@ function MenuHandler() {
     this.filterMenuItems = function(items,type){
         if(type == null) {
             items = items.filter(function(value){
-                if(value.hash === "mon_infra_underlay") {
-                    if(globalObj.webServerInfo.underlayEnabled == true)
-                        return true;
-                    else
-                        return false;
-                }
                 var hasAccess = false;
                 hasAccess = checkForAccess(value);
                 if(value['items'] != null && value['items']['item'] instanceof Array && hasAccess)
@@ -1057,7 +1109,8 @@ function MenuHandler() {
         }
         if (subMenuId == null) {
             subMenuId = $('.item:first').find('ul:first');
-            window.location = $('.item:first').find('ul:first').find('li:first a').attr("href"); // TODO: Avoid reload of page; fix it via hash.
+            var href = $('.item:first').find('ul:first').find('li:first a').attr("href");
+            loadFeature($.deparam.fragment(href));
         } else {
             subMenuId = $(linkId).parent('ul.submenu');
             toggleSubMenu($(subMenuId), linkId);
@@ -1304,8 +1357,9 @@ function MenuHandler() {
                     var isLoadFn = currResourceObj['loadFn'] != null ? true : false;
                     var isReloadRequired = true;
                     //Restrict not re-loading scripts only for monitor infrastructure and monitor networks for now
-                    if(currResourceObj['class'] == 'infraMonitorView' || currResourceObj['class'] == 'tenantNetworkMonitorView')
+                    if(NO_RELOAD_JS_CLASSLIST.indexOf(currResourceObj['class']) != -1) {
                         isReloadRequired = false;
+                    }
                     $.each(currResourceObj['js'], function () {
                         //Load the JS file only if it's not loaded already
                         //if (window[currResourceObj['class']] == null)
@@ -1361,10 +1415,23 @@ function MenuHandler() {
                     IS_NODE_MANAGER_INSTALLED = getValueByJsonPath(globalObj,'webServerInfo;uiConfig;nodemanager;installed',true);
                     //Cleanup the container
                     $(contentContainer).html('');
-                    $.each(getValueByJsonPath(currMenuObj,'resources;resource',[]),function(idx,currResourceObj) {
+
+                    setTimeout(function() {
+                        if($(contentContainer).html() == '') {
+                            $(contentContainer).html('<p id="content-container-loading"><i class="icon-spinner icon-spin"></i> &nbsp;Loading content ..</p>');
+                        }
+
+                    }, 2000);
+
+                    $.each(getValueByJsonPath(currMenuObj, 'resources;resource', []), function (idx, currResourceObj) {
                         if (currResourceObj['class'] != null) {
-                            if(window[currResourceObj['class']] != null)
-                                window[currResourceObj['class']].load({containerId:contentContainer, hashParams:layoutHandler.getURLHashParams()});
+                            if (window[currResourceObj['class']] != null) {
+                                window[currResourceObj['class']].load({
+                                    containerId: contentContainer,
+                                    hashParams: layoutHandler.getURLHashParams()
+                                });
+                                $('#content-container-loading').remove();
+                            }
                         }
                     });
                 });
@@ -2102,6 +2169,10 @@ function ManageDataSource() {
                     deferredObj:null,
                     dataSource:null
                 },
+                'projectDS':{
+                        data:null,
+                        dataSource:null
+                }
             };
         globalObj['dataSources'] = obj;
         //ko.applyBindings(lastupdatedTimeViewModel,$('div.hardrefresh'));

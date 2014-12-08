@@ -19,6 +19,7 @@ var axon = require('axon')
     , logutils = require('./src/serverroot/utils/log.utils')
     , discServ = require('./src/serverroot/jobs/core/discoveryservice.api')
     , async = require('async')
+    , fs = require('fs')
     , jsonPath = require('JSONPath').eval;
 
 var hostName = config.jobServer.server_ip
@@ -47,7 +48,7 @@ processMsg = function (msg) {
 connectToMainServer = function () {
     var connectURL = 'tcp://' + hostName + ":" + port;
     workerSock.connect(connectURL);
-    console.log('Job Server connected to port ', port);
+    logutils.logger.info('Job Server connected to port ' + port);
 }
 
 kueJobListen = function() {
@@ -60,22 +61,29 @@ function createVRouterSummaryJob ()
 {
     var appData = {};
     appData['addGen'] = true;
+    var jobObj = {};
     var url = '/virtual-routers';
-    jobsApi.createJobAtInit(global.STR_GET_VROUTERS_SUMMARY, url, 
-                            global.VROUTER_SUMM_JOB_REFRESH_TIME,
-                            /* Wait for 5 minutes to start job at web-ui start
-                             * */
-                            0, global.VROUTER_SUMM_JOB_REFRESH_TIME, appData);
+    jobObj['jobName'] = global.STR_GET_VROUTERS_SUMMARY;
+    jobObj['url'] = url;
+    jobObj['firstRunDelay'] = global.VROUTER_SUMM_JOB_REFRESH_TIME;
+    jobObj['runCount'] = 0;
+    jobObj['nextRunDelay'] = global.VROUTER_SUMM_JOB_REFRESH_TIME;
+    jobObj['orchModel'] = 'openstack';
+    jobObj['appData'] = appData;
+    jobsApi.createJobAtInit(jobObj);
 }
 
 function createVRouterGeneratorsJob ()
 {
     var url = '/virtual-routers';
-    jobsApi.createJobAtInit(global.STR_GET_VROUTERS_GENERATORS, url, 
-                            global.VROUTER_SUMM_JOB_REFRESH_TIME,
-                            /* Wait for 5 minutes to start job at web-ui start
-                             * */
-                            0, global.VROUTER_GENR_JOB_REFRESH_TIME, null);
+    var jobObj = {};
+    jobObj['jobName'] = global.STR_GET_VROUTERS_GENERATORS;
+    jobObj['url'] = url;
+    jobObj['firstRunDelay'] = global.VROUTER_SUMM_JOB_REFRESH_TIME;
+    jobObj['runCount'] = 0;
+    jobObj['nextRunDelay'] = global.VROUTER_GENR_JOB_REFRESH_TIME;
+    jobObj['orchModel'] = 'openstack';
+    jobsApi.createJobAtInit(jobObj);
 }
 
 function createJobsAtInit ()
@@ -103,6 +111,28 @@ function registerTojobListenerEvent()
     }
 }
 
+/* Function: doFeatureTaskInit
+   This function is used to do all initializations of all the feature packages
+   installed and if is set as enabled in config file
+ */
+function doFeatureTaskInit ()
+{
+    var featurePkgList = config.featurePkg;
+    for (key in featurePkgList) {
+        if ((config.featurePkg[key]) && (config.featurePkg[key]['path']) &&
+            ((null == config.featurePkg[key]['enable']) ||
+             (true == config.featurePkg[key]['enable'])) &&
+            (true == fs.existsSync(config.featurePkg[key]['path'] +
+                                   '/webroot/common/api/init.api.js'))) {
+            var initApi = require(config.featurePkg[key]['path'] +
+                                   '/webroot/common/api/init.api.js');
+            if (initApi.featureInit) {
+                initApi.featureInit();
+            }
+        }
+    }
+}
+
 function startServers ()
 {
     kueJobListen();
@@ -115,21 +145,19 @@ function startServers ()
     }
     redisPub.createRedisPubClient(function() {
         createJobsAtInit();
+        doFeatureTaskInit();
     });
 }
 
-function jobServerPurgeAndStart (redisClient)
+function jobServerPurgeAndStart (redisClient, callback)
 {
     var redisDBs = [global.WEBUI_SESSION_REDIS_DB, global.WEBUI_DFLT_REDIS_DB,
         global.QE_DFLT_REDIS_DB, global.SM_DFLT_REDIS_DB];
     async.map(redisDBs, commonUtils.flushRedisDB, function() {
         /* Already logged */
+        callback();
     });
 }
-
-commonUtils.createRedisClient(function(client) {
-    jobServerPurgeAndStart(client);
-});
 
 workerSock.on('message', function (msg) {
     /* Now based on the message type, act */
@@ -138,7 +166,11 @@ workerSock.on('message', function (msg) {
 
 jobsApi.jobListenerReadyQEvent.on('kueReady', function() {
     /* Now start real server processing */
-    startServers();
+    commonUtils.createRedisClient(function(client) {
+        jobServerPurgeAndStart(client, function() {
+            startServers();
+        });
+    });
 });
 
 exports.myIdentity = myIdentity;

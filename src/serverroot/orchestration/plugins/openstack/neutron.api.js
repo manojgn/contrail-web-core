@@ -5,7 +5,8 @@
 var rest = require('../../../common/rest.api'),
     config = process.mainModule.exports.config,
     authApi = require('../../../common/auth.api'),
-    commonUtils = require('../../../utils/common.utils')
+    commonUtils = require('../../../utils/common.utils'),
+    logutils = require('../../../utils/log.utils')
     ;
 var neutronAPIServer;
 
@@ -46,16 +47,18 @@ function doNeutronOpCb (reqUrl, tenantId, req, neutronCallback, stopRetry,
                         function(err, tokenObj) {
         if ((err) || (null == tokenObj) || (null == tokenObj.id)) {
             if (stopRetry) {
-                console.log("We are done retrying for tenantId:" + tenantId +
-                            " with err:" + err);
+                logutils.logger.debug("We are done retrying for tenantId:" +
+                                      tenantId + " with err:" + err);
                 commonUtils.redirectToLogout(req, req.res);
             } else {
                 /* Retry once again */
-                console.log("We are about to retry for tenantId:" + tenantId);
+                logutils.logger.debug("We are about to retry for tenantId:" +
+                                      tenantId);
                 neutronCallback(reqUrl, req, callback, true);
             }
         } else {
-            console.log("doNeutronOpCb() success with tenantId:" + tenantId);
+            logutils.logger.debug("doNeutronOpCb() success with tenantId:" +
+                                  tenantId);
             callback(err, tokenObj);
         }
     });
@@ -212,6 +215,13 @@ function deleteNetworkPort (req, portId, callback)
     neutronApi.delete(url, req, callback);
 }
 
+function updateRouter (req, postData, routerId, callback)
+{
+    var url = '/v2.0/routers/' + routerId + '.json';
+    neutronApi.put(url, postData, req, callback);
+}
+
 exports.createNetworkPort = createNetworkPort;
 exports.deleteNetworkPort = deleteNetworkPort;
+exports.updateRouter = updateRouter;
 
