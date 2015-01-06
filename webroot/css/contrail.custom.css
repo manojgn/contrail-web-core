@@ -2481,10 +2481,10 @@ color: #b94a48;
 }
 
 .chart-settings-close{
-	display: block;
+	display: inline-block;
 	width: 12px;
 	height: 13px;
-	position: absolute;
+	position: inherit;
 	right: 3px;
 	top: 4px;
 	font-size: 1px;
@@ -2508,11 +2508,11 @@ color: #b94a48;
 
 .chart-settings-reset label{
 	border-color: #dadada;
-	border: 1px solid #aaaaaa;
-	border-radius: 1px;
+	/* border: 1px solid #aaaaaa;
+	border-radius: 1px; */
 	box-shadow: none;
 	background: none;
-	padding: 3px 18px 3px 5px;
+	padding: 3px 3px 3px 5px;
 	line-height: 12px;
 }
 

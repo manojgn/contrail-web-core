@@ -574,21 +574,21 @@
         </div>
         <div class = "chart-settings-hide upArrow">
             <div class="chart-settings-reset">
-                <div class="color-filter-settings-reset">
+              <!--  <div class="color-filter-settings-reset">
                     <label class="chart-settings-label hyperlink-active">Severity Filter</label>
                     <a href="#" id="chart-settings-severity-filter-remove" class="chart-settings-close" tabindex="-1">x</a>
-                </div>
+                </div> -->
                 <div class="bucketize-reset">
-                    <label class="chart-settings-label hyperlink-active">Bucketize</label>
+                    <label class="chart-settings-label">Bucketize</label>
                     <a href="#" id="chart-settings-bucketization-remove" class="chart-settings-close" tabindex="-1">x</a>
                 </div> 
                 <!--  <div class="dynamic-axis-settings-reset">
                     <label hyperlink-active>Dynamic Axis</label>
                     <a href="#" class="select2-search-choice-close" tabindex="-1"></a>
-                </div>
+                </div> 
                 <div class="all-reset">
-                    <label hyperlink-active>Reset All</label>
-                    <a href="#" class="select2-search-choice-close" tabindex="-1"></a>
+                    <label class="chart-settings-label">Reset All</label>
+                    <a href="#" class="chart-settings-close" tabindex="-1"></a>
                 </div> -->
             </div>
             <label class="chart-settings-label hyperlink-active position-right chart-setting-options underline" >Options</label> 
