@@ -530,6 +530,7 @@
             {{/each}}
         </div>
     </div>
+</script>
 <script type="text/x-handlebars-template" id="chart-settings">
     <div class="chart-settings">
         <div class="chart-settings-wrapper hide">

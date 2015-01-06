@@ -2469,7 +2469,7 @@ color: #b94a48;
 .row-fluid.form-dropdown-label [class*="span"],
 .row-fluid.form-multiselect-label [class*="span"] {
     min-height: 25px;
-=======
+}
 .chart-settings-label {
 	margin-bottom:0px;
 	display:inline-block;

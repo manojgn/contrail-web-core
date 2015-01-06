@@ -194,7 +194,6 @@
                             msg:'Error in fetching details',type:'bubblechart'});
                     }
                 });
-            chartOptions['deferredObj'] = data['deferredObj'];
             chartOptions['useVoronoi'] = false;
             initScatterBubbleChart(selector, d, chart, chartOptions);
             if(!isScatterChartInitialized("#"+$(selector).attr('id'))) {
@@ -210,10 +209,10 @@
                      chartOptions['deferredObj'].done(function(){
                          var settings = [];
                          if(chartOptions['xAxisParams'] != null) { 
-                             settings.push({id:'xAxisParams',lbl:'X-Axis parameters'});
+                             settings.push({id:'xAxisParams',lbl:'X-Axis'});
                          }
                          if(chartOptions['yAxisParams'] != null) {
-                             settings.push({id:'yAxisParams',lbl:'Y-Axis parameters'});
+                             settings.push({id:'yAxisParams',lbl:'Y-Axis'});
                          }
                          if(chartOptions['showSettings'] && $(selector).parent('div').find('.chart-settings').length == 0) {
                              $(selector).parent('div').prepend(contrail.getTemplate4Id('chart-settings')(settings));
@@ -1182,6 +1181,7 @@ function isScatterChartInitialized(selector) {
       return false;
 }
 
+
 /**
  * This function takes event object and tooltip function which is used to get the content of the each tooltip
  * and chart and returns the object consists of all the tooltips of overlapped nodes and perpage etc info
@@ -1198,14 +1198,6 @@ function getMultiTooltipContent(e,tooltipFn,bucketTooltipFn,chart,selector) {
     for(var i = 0;i < e['series'].length; i++){
         $.merge(series,e['series'][i]['values']);
     }
-    for(var i = 0;i < overlappedNodes.length; i++){
-        var data = $.grep(series,function(obj,idx) {
-            return (obj['name'] == overlappedNodes[i]['name'] && obj['type'] == overlappedNodes[i]['type'] && 
-                    !chart.state()['disabled'][chart.seriesMap()[obj['type']]]);
-        });
-        if(!isEmptyObject(data)) {
-            //data['point'] = data[0];
-            tooltipArray.push(tooltipFn(data[0]));
     var origData = $(selector).data('origData');
     if(!e.point.isBucket){
         for(var i = 0;i < overlappedNodes.length; i++){
@@ -1243,7 +1235,6 @@ function getMultiTooltipContent(e,tooltipFn,bucketTooltipFn,chart,selector) {
         result['pagestr']  = 1+" / "+result['content'].length ;
     return result;
 }
-
 function getBucketTooltipContent(e,tooltipFn,chart,selector){
     
 }

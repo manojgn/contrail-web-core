@@ -2675,6 +2675,8 @@ function prefixToNetMask(prefixLen) {
             binaryString += '0';
     }
     return v4.Address.fromHex(parseInt(binaryString,2).toString(16)).address;
+}
+
 /***
  *  Returns the list of keys from a hashmap whose value matches with the given value
  ***/
