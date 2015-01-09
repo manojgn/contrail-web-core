@@ -60,8 +60,7 @@
             });
             var dataStack = [];
             var totalBucketizedNodes = 0;
-            //isBucketize = (chartOptions['isBucketize'])? true: false;
-            isBucketize = (!getCookie(DO_BUCKETIZE_COOKIE))? defaultBucketize : (getCookie(DO_BUCKETIZE_COOKIE) == 'yes')? true : false;
+            isBucketize = (chartOptions['isBucketize'])? true: false;
             if(isBucketize){
                 data = doBucketization(data,chartOptions);
                 totalBucketizedNodes = getTotalBucketizedNodes(data['d']);
@@ -521,8 +520,8 @@
               //Update the header if required with shown and total count
               var totalCnt = $("#"+ chartid).data('origDataCount');
               var filteredCnt = totalBucketizedNodes;
-              
-              updatevRouterLabel('vrouter-header',filteredCnt,totalCnt);
+            if(chartOptions['updateHeaderCount'])
+                updatevRouterLabel($(selector).parents().find('.widget-box').find('.widget-header'),filteredCnt,totalCnt);
             if(data['widgetBoxId'] != null)
                 endWidgetLoading(data['widgetBoxId']);
 
@@ -963,7 +962,13 @@ function mergeBucketIntoSingleNode(filteredNodes,minMaxX,minMaxY,parentMinMaxX,p
     return obj;
 }
 
-function fetchNodesBetweenXAndYRange(dataCF,xDimension,yDimension,thirdDimension,xMinMax,yMinMax){
+function fetchNodesBetweenXAndYRange(d,xMinMax,yMinMax,cfName){
+    var dataCF = crossfilter(d);
+    
+    var xDimension = dataCF.dimension(function(d) { return d.x; });
+    var yDimension = dataCF.dimension(function(d) { return d.y; });
+    var thirdDimension = dataCF.dimension(function(d) { return d.x; });
+    
     var filterByX = xDimension.filter(xMinMax);
     var filterByY = yDimension.filter(yMinMax);
     
@@ -971,6 +976,21 @@ function fetchNodesBetweenXAndYRange(dataCF,xDimension,yDimension,thirdDimension
     xDimension.filterAll();
     yDimension.filterAll();
     return t;
+    
+}
+
+/** Given node obj to disperse use the x and y values and size to randomly add minute values 
+ * to x and y so that the nodes appear dispersed instead of a single node. */
+function disperseRandomly(nodes,maxVariation){
+    for(var i=0;i < nodes.length; i++){
+        var x = nodes[i]['x'];
+        var y = nodes[i]['y'];
+        var newX = getRandomValue(x - (x* maxVariation), x + (x* maxVariation)); 
+        var newY = getRandomValue(y - (y* maxVariation), y + (y* maxVariation));
+        nodes[i]['x'] = newX;
+        nodes[i]['y'] = newY;
+    }
+    return nodes;
 }
 
 function doBucketization(data,chartOptions){
@@ -1047,6 +1067,7 @@ function doBucketization(data,chartOptions){
                 options.minMaxY = minMaxY;
                 options.xStops = xStops;
                 options.yStops = yStops;
+                options.cfName = data.crossFilter;
                 options.bucketsPerAxis = bucketsPerAxis;
                 d[i]['values'] = bucketize(d[i]['values'],options); 
                 var nodeCnt = d[i]['values'].length;

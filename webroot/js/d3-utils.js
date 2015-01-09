@@ -596,7 +596,6 @@ function initScatterBubbleChart(selector, data, chart, chartOptions) {
             .tooltipXContent(null)
             .tooltipYContent(null)
             .showTooltipLines(false)
-            .showLegend(false)
             .tooltipContent(chartOptions['tooltipFn']);
         
         if(chartOptions['tooltipRenderedFn'] != null)
@@ -616,8 +615,8 @@ function initScatterBubbleChart(selector, data, chart, chartOptions) {
         if(chartOptions['useVoronoi'] != null && chart.scatter != null)
             chart.scatter.useVoronoi(chartOptions['useVoronoi']);
 
-        //If more than one category is displayed,enable showLegend
-        if(data.length == 1) {
+        //If there is only set of bubbles and showLegend is set to false then disable the legend 
+        if(data.length == 1 || chartOptions['showLegend'] == false) {
             chart.showLegend(false);
         }
 
