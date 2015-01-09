@@ -33,13 +33,12 @@
             var selector = $(this), toFormat = '',
                 chartOptions = ifNull(data['chartOptions'],{}), chart, yMaxMin, d;
             var hoveredOnTooltip,tooltipTimeoutId;
-            var xLbl = ifNull(data['xLbl'], 'CPU (%)'),
-                yLbl = ifNull(data['yLbl'], 'Memory (MB)');
+            var xLbl = ifNull(chartOptions['xLbl'], 'CPU (%)'),
+                yLbl = ifNull(chartOptions['yLbl'], 'Memory (MB)');
 
-            var xLblFormat = ifNull(data['xLblFormat'], d3.format()),
-                yLblFormat = ifNull(data['yLblFormat'], d3.format());
+            var xLblFormat = ifNull(chartOptions['xLblFormat'], d3.format()),
+                yLblFormat = ifNull(chartOptions['yLblFormat'], d3.format());
 
-            var yDataType = ifNull(data['yDataType'], '');
             var hoveredOnTooltip,tooltipTimeoutId,yLbl = ifNull(chartOptions['yLbl'], 'Memory (MB)');
             var yLblFormat = function(y) {
                 return parseFloat(d3.format('.02f')(y)).toString();
@@ -68,8 +67,8 @@
                 totalBucketizedNodes = getTotalBucketizedNodes(data['d']);
             }
             if ($.inArray(ifNull(data['title'], ''), ['vRouters', 'Analytic Nodes', 'Config Nodes', 'Control Nodes']) > -1) {
-                data['forceX'] = [0, 0.15];
-                xLblFormat = ifNull(data['xLblFormat'], d3.format('.02f'));
+                chartOptions['forceX'] = [0, 0.15];
+                xLblFormat = ifNull(chartOptions['xLblFormat'], d3.format('.02f'));
                 //yLblFormat = ifNull(data['xLblFormat'],d3.format('.02f'));
             }
             if (data['d'] != null)
@@ -81,7 +80,7 @@
             });
             dValues = flattenList(dValues);
 
-            if(data['yLblFormat'] == null) {
+            if(chartOptions['yLblFormat'] == null) {
                 yLblFormat = function(y) {
                     return parseFloat(d3.format('.02f')(y)).toString();
                 };
@@ -104,8 +103,6 @@
             chartOptions['yLbl'] = yLbl;
             chartOptions['xLblFormat'] = xLblFormat;
             chartOptions['yLblFormat'] = yLblFormat;
-            chartOptions['forceX'] = data['forceX'];
-            chartOptions['forceY'] = data['forceY'];
             var seriesType = {};
             for(var i = 0;i < d.length; i++ ) {
                 var values = [];
@@ -380,7 +377,7 @@
                                              });
                                          }); 
                                      });
-                                     range = d3.extent(values,function(item){return item[axisType]});
+                                     range = d3.extent(values,function(item){return item[item[field]]});
                                      if(type == null && range[1] == range[0]) {
                                          range[0] = (range[0] - range[0] * 0.05 < 0 ) ? 0 : Math.floor(range[0] - range[0] * 0.05);
                                          range[1] = Math.ceil(range[1] + range[1] * 0.05);
@@ -482,9 +479,16 @@
                                var cfDiv = $(this).closest('.chart');
                                var cfObj = $(cfDiv).data('chartObj');
                                var axis = $(cfDiv).data('axis');
-                               console.log(axis);
                                //Need to reset the filter based on the axis
                                cfObj.filter(null);
+                               var filteredData = cfObj.dimension().top(Infinity);
+                               if (chartObj['chartOptions']['dataSplitFn'] != null && 
+                                       typeof chartObj['chartOptions']['dataSplitFn'] == 'function') {
+                                   chartObj['d'] = chartObj['chartOptions']['dataSplitFn'](filteredData);
+                               } else 
+                                   chartObj['d'] = filteredData;
+                               //chartObj['d'] = chartData['d'];
+                               $(selector).initScatterChart(chartObj);
                                renderAll(cfChart);
                             });
                          }
@@ -508,7 +512,8 @@
                  chart = $(selector).data('chart');
                  var svg = $(selector).find('svg')[0];
                  chart = setChartOptions(chart,chartOptions);
-                 d3.select(svg).datum(d);
+                 d3.select(svg).datum(currData['d']);
+                 $(selector).data('origData',currData);
                  if(chart.update != null)
                      chart.update();
             }
@@ -552,11 +557,9 @@
                     bubbleDrillDown($(this).find('div.chart-tooltip-title').find('p').text(),result['nodeMap']);
                 });
                 $(tooltipContainer).find('div.enabledPointer').on('mouseover',function(e){
-                    //console.log("Inside the mouse over");
                     hoveredOnTooltip = true; 
                 });
                 $(tooltipContainer).find('div.enabledPointer').on('mouseleave',function(e){
-                    //console.log("Inside the mouseout ");
                     hoveredOnTooltip = false;
                     nv.tooltip.cleanup();
                 });
