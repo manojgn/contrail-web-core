@@ -40,10 +40,11 @@
                 yLblFormat = ifNull(chartOptions['yLblFormat'], d3.format());
 
             var hoveredOnTooltip,tooltipTimeoutId,yLbl = ifNull(chartOptions['yLbl'], 'Memory (MB)');
+            var yDataType = ifNull(chartOptions['yDataType'], '');
+            /*
             var yLblFormat = function(y) {
                 return parseFloat(d3.format('.02f')(y)).toString();
-            }
-            var yDataType = ifNull(chartOptions['yDataType'], '');
+            }*/
             if (data['d'] != null)
                 d = data['d'];
             //Merge the data values array if there are multiple categories plotted in chart, to get min/max values
@@ -70,6 +71,7 @@
                 xLblFormat = ifNull(chartOptions['xLblFormat'], d3.format('.02f'));
                 //yLblFormat = ifNull(data['xLblFormat'],d3.format('.02f'));
             }
+            /*
             if (data['d'] != null)
                 d = data['d'];
 
@@ -78,6 +80,7 @@
                 return obj['values'];
             });
             dValues = flattenList(dValues);
+            */
 
             if(chartOptions['yLblFormat'] == null) {
                 yLblFormat = function(y) {
@@ -191,7 +194,7 @@
                     }
                 });
             chartOptions['useVoronoi'] = false;
-            initScatterBubbleChart(selector, d, chart, chartOptions);
+            //initScatterBubbleChart(selector, d, chart, chartOptions);
             if(!isScatterChartInitialized("#"+$(selector).attr('id'))) {
                 origData = currData;
                  if(data['loadedDeferredObj'] != null)
@@ -493,6 +496,7 @@
                          }
                     }); 
                  }
+                console.info('calling initScatterBubbleChart',d);
                 initScatterBubbleChart(selector, d, chart, chartOptions);
                 var chartid = $(selector).attr('id');
               //if(!isScatterChartInitialized("#"+$(selector).attr('id'))){
@@ -512,7 +516,7 @@
                  var svg = $(selector).find('svg')[0];
                  chart = setChartOptions(chart,chartOptions);
                  d3.select(svg).datum(currData['d']);
-                 $(selector).data('origData',currData);
+                 //$(selector).data('origData',currData);
                  if(chart.update != null)
                      chart.update();
             }
@@ -1030,6 +1034,10 @@ function doBucketization(data,chartOptions){
         if(parentMinMax == null){
             parentMinMax = [];
         }
+        if(!$.isNumeric(minMaxX[0])) 
+            minMaxX[0] = 0;
+        if(!$.isNumeric(minMaxX[1]))
+            minMaxX[1] = minMaxX[0];
         var newParent = {minMaxX:minMaxX,minMaxY:minMaxY};
         if(parentMinMax.length > 0){
             //check if the last object is not the same as current and then add
@@ -1045,7 +1053,7 @@ function doBucketization(data,chartOptions){
         } else {
             var bucketOptions = {parentMinMax:parentMinMax};
         }
-        //If only one node normalize to get the bubble in the range
+        //If all nodes have same x-value
         if(minMaxX[0] == minMaxX[1]){
             minMaxX = [minMaxX[0] * .9, minMaxX[0] * 1.1];
         }
@@ -1232,7 +1240,7 @@ function getMultiTooltipContent(e,tooltipFn,bucketTooltipFn,chart,selector) {
             
             if(!isEmptyObject(data)) {
                 //data['point'] = data[0];
-                tooltipArray.push(tooltipFn(data[0],null,null));
+                tooltipArray.push(tooltipFn(data[0],null,null,chart));
                 //Creates a hashMap based on first key/value in tooltipContent
                 nodeMap[tooltipFn(data[0])[0]['value']] = {point:data[0]};
             }
@@ -1903,4 +1911,10 @@ function zoomOut(selector){
    // filterAndUpdateScatterChart(chartid,data);
     var cfName = data.chartOptions['crossFilter'];
     filterUsingGlobalCrossFilter(cfName,null,null);
+}
+
+function filterUsingGlobalCrossFilter(cfName,xMinMax,yMinMax){
+    manageCrossFilters.applyFilter(cfName, 'x', xMinMax);
+    manageCrossFilters.applyFilter(cfName, 'y', yMinMax);
+    manageCrossFilters.fireCallBacks(cfName);
 }

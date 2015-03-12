@@ -2787,11 +2787,11 @@ function comparatorIP(ip1, ip2, sign){
     }
     return -1;
 }
-
+/*
  * Methods to set and update the cross filters which are linked to the single datasource
 */
 
-function ManageCrossFilters(){
+function ManageCrossFilters() {
     this.load = function() {
         var obj = {
                 //vRouters Cross Filter
@@ -2980,6 +2980,13 @@ function ManageCrossFilters(){
         
         callBacks.remove(callBackFn);
         delete globalObj['crossFilters'][cfName]['callBackFns'][callBackName];
+    }
+
+    this.removeAllCallBacks = function(cfName) {
+        var callBacks = this.getCallBackFns(cfName);
+        for(var currCallback in callBacks) {
+            this.removeCallBack(cfName,currCallback);
+        }
     }
     
     this.fireCallBacks = function(cfName,options){
