@@ -580,14 +580,8 @@ function updateChartOnResize(selector,chart){
 }
 
 function initScatterBubbleChart(selector, data, chart, chartOptions) {
-    var d3Scale = d3.scale.linear().range([1,2]).domain(chartOptions['sizeMinMax']);
-    //Adjust the size domain to have limit on minumum bubble size
-    $.each(data,function(idx,currSeries) {
-        currSeries['values'] = $.each(currSeries['values'],function(idx,obj) {
-                obj['size']  = d3Scale(obj['size']);
-            });
-    });
     nv.addGraph(function () {
+        //No need to set the sizeDomain,as we already normalize the sizes before invoking this function
         chart = nv.models.scatterChart()
             .showDistX(false)
             .showDistY(false)

@@ -3,6 +3,419 @@
  */
 (function ($) {
     var dragSrc = d3.behavior.drag();
+    /**
+        * function takes the parameters tooltipContainer object and the tooltip array for multitooltip and binds the 
+        * events like drill down on tooltip and click on left and right arrows
+        * @param result
+        * @param tooltipContainer
+        */
+    function bindEventsOverlapTooltip(result,tooltipContainer) {
+        var page = 1;
+        var perPage = result['perPage'];
+        var pagestr = "";
+        var data = [];
+        result['perPage'] = perPage;
+        data = $.extend(true,[],result['content']); 
+        result['content'] = result['content'].slice(0,perPage);
+        if(result['perPage'] > 1)
+            result['pagestr'] = 1 +" - "+result['content'].length +" of "+data.length;
+        else if(result['perPage'] == 1)
+            result['pagestr'] = 1 +" / "+data.length;
+        $(tooltipContainer).find('div.enabledPointer').parent().html(formatLblValueMultiTooltip(result));
+        $(tooltipContainer).find('div.left-arrow').on('click',function(e){
+            result['button'] = 'left';
+            handleLeftRightBtnClick(result,tooltipContainer);
+        });
+        $(tooltipContainer).find('div.right-arrow').on('click',function(e){
+            result['button'] = 'right';
+            handleLeftRightBtnClick(result,tooltipContainer);
+        });
+        $(tooltipContainer).find('div.tooltip-wrapper').find('div.chart-tooltip').on('click',function(e){
+            bubbleDrillDown($(this).find('div.chart-tooltip-title').find('p').text(),result['nodeMap']);
+        });
+        $(tooltipContainer).find('div.enabledPointer').on('mouseover',function(e){
+            hoveredOnTooltip = true; 
+        });
+        $(tooltipContainer).find('div.enabledPointer').on('mouseleave',function(e){
+            hoveredOnTooltip = false;
+            nv.tooltip.cleanup();
+        });
+        $(tooltipContainer).find('button.close').on('click',function(e){
+            hoveredOnTooltip = false;
+            nv.tooltip.cleanup();
+        });
+        function handleLeftRightBtnClick(result,tooltipContainer) {
+                var content = [];
+                var leftPos = 'auto',rightPos = 'auto';
+                if(result['button'] == 'left') {
+                    if($(tooltipContainer).css('left') == 'auto') {
+                        leftPos = $(tooltipContainer).position()['left'];
+                        $(tooltipContainer).css('left',leftPos);
+                        $(tooltipContainer).css('right','auto');
+                    }
+                    if(page == 1)
+                        return;
+                    page = page-1;
+                    if(result['perPage'] > 1)
+                        pagestr = (page - 1) * perPage+1 +" - "+ (page) * perPage;
+                    else if(result['perPage'] == 1)
+                        pagestr = (page - 1) * perPage+1;
+                    if(page <= 1) {
+                        if(result['perPage'] > 1)
+                            pagestr = 1 +" - "+ (page) * perPage;
+                        else if(result['perPage'] == 1)
+                            pagestr = 1;
+                    }
+                    content = data.slice((page-1) * perPage,page * perPage);
+                } else if (result['button'] == 'right') {
+                    if($(tooltipContainer).css('right') == 'auto') {
+                        leftPos = $(tooltipContainer).position()['left'];
+                        rightPos = $(tooltipContainer).offsetParent().width() - $(tooltipContainer).outerWidth() - leftPos;
+                        $(tooltipContainer).css('right', rightPos);
+                        $(tooltipContainer).css('left','auto');
+                    }
+                    if(Math.ceil(data.length/perPage) == page)
+                        return;
+                    page += 1;
+                    if(result['perPage'] > 1)
+                        pagestr = (page - 1) * perPage+1 +" - "+ (page) * perPage;
+                    else if(result['perPage'] == 1)
+                        pagestr = (page - 1) * perPage+1;
+                    content = data.slice((page-1) * perPage,page * perPage);
+                    if(data.length <= page * perPage) {
+                        if(result['perPage'] > 1)
+                            pagestr = (data.length-perPage)+1 +" - "+ data.length;
+                        else if(result['perPage'] == 1)
+                            pagestr = (data.length-perPage)+1;
+                        content = data.slice((data.length - perPage),data.length);
+                    } 
+                }
+                leftPos = $(tooltipContainer).position()['left'];
+                rightPos = $(tooltipContainer).offsetParent().width() - $(tooltipContainer).outerWidth() - leftPos;
+                result['content'] = content;
+                if(result['perPage'] > 1)
+                    pagestr += " of "+data.length;
+                else if(result['perPage'] == 1)
+                    pagestr += " / "+data.length;
+                result['perPage'] = perPage;
+                $(tooltipContainer).css('left',0);
+                $(tooltipContainer).css('right','auto');
+                $(tooltipContainer).find('div.tooltip-wrapper').html("");
+                for(var i = 0;i<result['content'].length ; i++) {
+                    $(tooltipContainer).find('div.tooltip-wrapper').append(formatLblValueTooltip(result['content'][i]));
+                }
+                $(tooltipContainer).find('div.pagecount span').html(pagestr);
+                if(result['button'] == 'left') {
+                //Incase the tooltip doesnot accomodate in the right space available 
+                    if($(tooltipContainer).outerWidth() > ($(tooltipContainer).offsetParent().width() - leftPos)){
+                        $(tooltipContainer).css('right',0);
+                        $(tooltipContainer).css('left','auto');
+                    } else {
+                        $(tooltipContainer).css('left',leftPos);
+                    }
+                } else if(result['button'] == 'right') {
+                    //Incase the tooltip doesnot accomodate in the left space available  
+                    if($(tooltipContainer).outerWidth() > ($(tooltipContainer).offsetParent().width() - rightPos)){
+                        $(tooltipContainer).css('left',0);
+                    } else {
+                        $(tooltipContainer).css('right',rightPos);
+                        $(tooltipContainer).css('left','auto');
+                    }
+                }
+                //binding the click on tooltip for bubble drill down
+                $(tooltipContainer).find('div.tooltip-wrapper').find('div.chart-tooltip').on('click',function(e){
+                    bubbleDrillDown($(this).find('div.chart-tooltip-title').find('p').text(),result['nodeMap']);
+                });
+        }
+        function bubbleDrillDown(nodeName,nodeMap) {
+            var e = nodeMap[nodeName];
+            if(typeof(chartOptions['clickFn']) == 'function')
+                chartOptions['clickFn'](e['point']);
+            else
+                processDrillDownForNodes(e);
+        }
+        $(window).off('resize.multiTooltip');
+        $(window).on('resize.multiTooltip',function(e){
+            nv.tooltip.cleanup();
+        });
+    }
+    /*
+    * This function accepts the crossfilterName,parameter on which the crossfilter chart need to be constructed,
+    * formatFn(if required) and filterDimension constructs the crossfilter chart and returns it 
+    */
+    function getCrossFilterCharts(cfName,key,formatFn,filterDimension) {
+        manageCrossFilters.addDimension(cfName, key, formatFn);
+        var dimension = manageCrossFilters.getDimension(cfName, key);
+        if(dimension.top(1).length > 0 ) {
+            maxValue = parseFloat(d3.max(dimension.group().all(),function(d) {return d['key']}));
+            barHeight = d3.max(dimension.group().all(),function(d) {return d['value']});
+        }
+        var axisCFChart =  barChart()
+                    .dimension(dimension)
+                    .group(dimension.group())
+                .x(d3.scale.linear()
+                    .domain([0,(maxValue+(maxValue * 0.1))])//Added 1% buffer 
+                    .rangeRound([0, 300]))
+                .y(d3.scale.linear()
+                    .domain([0,barHeight])
+                    .range([30,0]));
+        return axisCFChart;
+    }
+    /*
+    * This function constructs the dynamic axis in the chart settings
+    */
+    function showAxisParams(selector,settings) {
+        var selParent = $(selector).parent('div');
+        var doBucketize =  (!getCookie(DO_BUCKETIZE_COOKIE))? defaultBucketize : (getCookie(DO_BUCKETIZE_COOKIE) == 'yes')? true : false;
+        var maxBucketizeLevel =  (!getCookie(BUCKETIZE_LEVEL_COOKIE))? defaultBucketsPerAxis : parseInt(getCookie(BUCKETIZE_LEVEL_COOKIE));
+        var bucketsPerAxis =  (!getCookie(BUCKETS_PER_AXIS_COOKIE))? defaultMaxBucketizeLevel : parseInt(getCookie(BUCKETS_PER_AXIS_COOKIE));
+        if(doBucketize){
+            $(selParent).find('#checkbox-bucketize').prop('checked', true);
+            $(selParent).find('#div-bucket-options').show();
+        } else { 
+            $(selParent).find('#checkbox-bucketize').prop('checked', false);
+            $(selParent).find('#div-bucket-options').hide();
+        }
+        $(selParent).find('#chartSettingsBucketMaxBucketizeLevel').val(maxBucketizeLevel);
+        $(selParent).find('#chartSettingsBucketPerAxis').val(bucketsPerAxis);
+        
+        //on selection of bucketize checkbox add/remove bucketization
+        $(selParent).find('#checkbox-bucketize').change(function(e){
+            var origData = $(selector).data('origData');
+            var chartObj = $.extend(true,{},origData);
+            if ($(selParent).find('#checkbox-bucketize').is(":checked")){
+                setCookie(DO_BUCKETIZE_COOKIE,'yes');
+                $(selParent).find('#div-bucket-options').show();
+                $(selParent).find('.bucketize-reset').show();
+                if(chartOptions['isBucketize'] != true){
+                    chartOptions['isBucketize'] = true;
+                    chartObj['chartOptions'] = chartOptions;
+                    $(selector).initScatterChart(chartObj);
+                    // manageCrossFilters.fireCallBacks('vRoutersCF');
+                }
+            } else {
+                setCookie(DO_BUCKETIZE_COOKIE,'no');
+                $(selParent).find('#div-bucket-options').hide();
+                $(selParent).find('.bucketize-reset').hide();
+                chartOptions['isBucketize'] = false;
+                chartObj['chartOptions'] = chartOptions;
+                // manageCrossFilters.fireCallBacks('vRoutersCF');
+                $(selector).initScatterChart(chartObj);
+            }
+        });
+        //on click of the bucketization apply button apply the settings
+        $(selParent).find('button.btnBucketSettingsApply').bind('click',function(clickEvt){
+            var origData = $(selector).data('origData');
+            var bucketOptions = origData.chartOptions.bucketOptions;
+            if(bucketOptions == null){
+                bucketOptions = {};
+            }
+            var maxBucketizeLevel = $(selParent).find('#chartSettingsBucketMaxBucketizeLevel').val();
+            var bucketsPerAxis = $(selParent).find('#chartSettingsBucketPerAxis').val();
+            //Save the values in cookies
+            setCookie(BUCKETIZE_LEVEL_COOKIE,maxBucketizeLevel);
+            setCookie(BUCKETS_PER_AXIS_COOKIE,bucketsPerAxis);
+            
+            bucketOptions.maxBucketizeLevel = maxBucketizeLevel;
+            bucketOptions.bucketsPerAxis = bucketsPerAxis;
+            origData.chartOptions.bucketOptions = bucketOptions;
+            $(selector).data('origData',origData);
+            var chartObj = $.extend(true,{},origData);
+            $(selector).initScatterChart(chartObj);
+        });
+        //on click of bucketization remove 
+        $(selParent).find('#chart-settings-bucketization-remove').bind('click',function(clickEvt){
+            var origData = $(selector).data('origData');
+            var chartObj = $.extend(true,{},origData);
+            $(selParent).find('.bucketize-reset').hide();
+            $(selParent).find('#checkbox-bucketize').attr("checked", false);
+            $(selParent).find('#div-bucket-options').hide();
+            chartOptions['isBucketize'] = false;
+            chartObj['chartOptions'] = chartOptions;
+            $(selector).initScatterChart(chartObj);
+        });
+        //show the settings on click of options link on the chart
+        $(selParent).find('div.chart-settings-hide .chart-setting-options').bind('click',function(clickEvt){
+            $('div.chart-settings-hide').addClass('hide');
+            $('div.chart-settings-wrapper').removeClass('hide');
+            $(selParent).find('div.chart-settings-wrapper').removeClass('hide');
+            $(selParent).find('div i').on('click',function(){
+                $('div.chart-settings-wrapper').addClass('hide');
+                $('div.chart-settings-hide').removeClass('hide');
+            });
+            var chartObj = $.extend(true,{},data);
+            var updateChartParams = chartObj['chartOptions'];
+            //var chartData = d3.select($(selector).find('svg')[0]).datum(),values = [],defaultKeys = {},filterDimension;
+            var origData = $(selector).data('origData'),values = [],defaultKeys = {},filterDimension,chartData;
+            chartData = origData;
+            $.each(chartData['d'],function(idx,data){
+                values = $.merge(values,data['values']); 
+            });
+            //var dataCrossFilter = crossfilter(values);
+            var cfName = chartOptions['crossFilter'];
+            manageCrossFilters.updateCrossFilter(cfName, values);
+            var dataCrossFilter = manageCrossFilters.getCrossFilter(cfName);
+            var cfCharts = [],cfChart;
+            $.each(settings,function(idx,setVal){
+                var id = setVal['id'],data = [];
+                var axisType = id.indexOf('xAxis') > -1 ? 'x' : 'y';
+                $("#"+id).contrailDropdown({
+                    dataTextField:"text",
+                    dataValueField:"value",
+                    change:function(e) {
+                        var chartData = $(selector).data('origData')['d'],field,type,formatFn,dataType,lbl,key;
+                        var selValue = $(e['target']).data('contrailDropdown').getSelectedData()[0]['text'];
+                        updateChartParams['tooltipFn'] = tooltipFn;
+                        $.each(chartData,function(idx,dataItem){
+                            $.each(dataItem['values'],function(sIdx,value){
+                                $.each(chartOptions[id],function(index,obj){
+                                if(obj['lbl'] == selValue) {
+                                    var range = [],updatedRange = [];
+                                        /* here if type is null, considering it as default data type integer
+                                        * In case of single point (which mean only one bubble or main bubbles with same x and y value)
+                                        * minimum and maximum will be same so whole axis will have only two values so we are setting the domain.
+                                        */
+                                    field = axisType == 'x'? 'xField' : 'yField';
+                                    type = obj['type'],dataType = obj['dataType'];
+                                    lbl = obj['lbl'],key = obj['key'];
+                                    if(obj['formatFn'] != null) {
+                                        value[field] = obj['key'];
+                                        value[obj['key']] = parseInt(obj['formatFn'](value[obj['key']]));
+                                        formatFn = obj['formatFn'];
+                                    } else {
+                                        if(type != null) {
+                                            updateChartParams[axisType+"LblFormat"] = d3.format('.02f');
+                                            value[field] = obj['key'];
+                                            value[obj['key']] = parseFloat(value[obj['key']]);
+                                            formatFn = d3.format('.02f');
+                                        } else {
+                                            updateChartParams[axisType+"LblFormat"] = d3.format('0d');
+                                            value[field] = obj['key'];
+                                            value[obj['key']] = parseInt(value[obj['key']]);
+                                            formatFn = d3.format('0d');
+                                        }
+                                    }
+                                }
+                                });
+                            }); 
+                        });
+                        range = d3.extent(values,function(item){return item[item[field]]});
+                        if(type == null && range[1] == range[0]) {
+                            range[0] = (range[0] - range[0] * 0.05 < 0 ) ? 0 : Math.floor(range[0] - range[0] * 0.05);
+                            range[1] = Math.ceil(range[1] + range[1] * 0.05);
+                            updateChartParams[axisType+"Domain"] = [range[0],range[1]]; 
+                        } 
+                        if(dataType == 'bytes') {
+                            var result = formatByteAxis(chartData);
+                            chartData = result['data'];
+                            updateChartParams[axisType+'Lbl'] = lbl + result[axisType+'Lbl'];
+                        } else 
+                            updateChartParams[axisType+'Lbl'] = lbl;
+                        if (dataCrossFilter != null) {
+                            var selParamCfChart = [];
+                            //we are deleting the html content because crossfilter is checking for global tag empty and stops 
+                            //rendering again
+                            $('#'+id+"_crossfilter").html('');
+                            var selParamCfChartObj = getCrossFilterCharts(cfName,key,formatFn,filterDimension);
+                            selParamCfChart.push(selParamCfChartObj);
+                            var selParamCfCharts =  d3.selectAll('#'+id+"_crossfilter")
+                                                    .data(selParamCfChart)
+                                                    .each(function(currChart){
+                                                        currChart.on('brush',function(){
+                                                            var filteredData = filterDimension.top(Infinity);
+                                                            chartObj['d'] = filteredData;
+                                                            //$(selector).initScatterChart(chartObj);
+                                                        }).on("brushend",function(){
+                                                            var filteredData = filterDimension.top(Infinity);
+                                                            if (chartObj['chartOptions']['dataSplitFn'] != null && 
+                                                                    typeof chartObj['chartOptions']['dataSplitFn'] == 'function') {
+                                                                chartObj['d'] = chartObj['chartOptions']['dataSplitFn'](filteredData);
+                                                            } else 
+                                                                chartObj['d'] = filteredData;
+                                                            $(selector).initScatterChart(chartObj);
+                                                        });
+                                                    });
+                            renderAll(selParamCfCharts);
+                        }
+                        chartObj['d'] = chartData;
+                        chartObj['chartOptions'] = updateChartParams;
+                        $(selector).initScatterChart(chartObj);
+                    }
+                });
+                $.each(chartOptions[id],function(idx,obj){
+                    if(obj['defaultParam'])
+                        defaultKeys[id] = obj;
+                    var obj = {
+                            id:obj['lbl'],
+                            text:obj['lbl'],
+                            value:obj['lbl']
+                    };
+                    data.push(obj);
+                });
+                $("#"+id).data('contrailDropdown').setData(data);
+                if(dataCrossFilter != null) {
+                    var formatFn;
+                    if(defaultKeys[id]['formatFn'] != null) {
+                        formatFn = defaultKeys[id]['formatFn'];
+                    } else {
+                        if(defaultKeys[id]['type'] != null)
+                            formatFn = d3.format('.02f')
+                        else
+                            formatFn = d3.format('0d');
+                    }
+                    manageCrossFilters.addDimension(cfName, defaultKeys[id]['key'], formatFn);
+                    /*
+                    * Filter dimension to be used for data retrieval
+                    */
+                    filterDimension = manageCrossFilters.getDimension(cfName,axisType);
+                    var dimension = manageCrossFilters.getDimension(cfName, defaultKeys[id]['key']);
+                    if(dimension.top(1).length > 0 ) {
+                        maxValue = parseFloat(d3.max(dimension.group().all(),function(d) {return d['key']}));
+                        barHeight = d3.max(dimension.group().all(),function(d) {return d['value']});
+                    }
+                    var dataCrossFilterObj = getCrossFilterCharts(cfName,defaultKeys[id]['key'],formatFn,filterDimension);
+                    $("#"+id+"_crossfilter").data('chartObj',dataCrossFilterObj);
+                    $("#"+id+"_crossfilter").data('axis',axisType);
+                    cfCharts.push(dataCrossFilterObj);
+                }
+            });
+            if(cfCharts.length > 0) {
+                var cfChart =  d3.selectAll('.chart')
+                                .data(cfCharts)
+                                .each(function(currChart){
+                                    currChart.on('brush',function(){
+                                        //nothing to do for now
+                                    }).on("brushend",function() {
+                                        var filteredData = filterDimension.top(Infinity);
+                                        if (chartObj['chartOptions']['dataSplitFn'] != null && 
+                                                typeof chartObj['chartOptions']['dataSplitFn'] == 'function') {
+                                            chartObj['d'] = chartObj['chartOptions']['dataSplitFn'](filteredData);
+                                        } else 
+                                            chartObj['d'] = filteredData;
+                                        $(selector).initScatterChart(chartObj);
+                                        //renderAll(cfChart);
+                                    });
+                                });
+            renderAll(cfChart);
+            $('.reset').bind('click',function(){
+                var cfDiv = $(this).closest('.chart');
+                var cfObj = $(cfDiv).data('chartObj');
+                var axis = $(cfDiv).data('axis');
+                //Need to reset the filter based on the axis
+                cfObj.filter(null);
+                var filteredData = cfObj.dimension().top(Infinity);
+                if (chartObj['chartOptions']['dataSplitFn'] != null && 
+                        typeof chartObj['chartOptions']['dataSplitFn'] == 'function') {
+                    chartObj['d'] = chartObj['chartOptions']['dataSplitFn'](filteredData);
+                } else 
+                    chartObj['d'] = filteredData;
+                //chartObj['d'] = chartData['d'];
+                $(selector).initScatterChart(chartObj);
+                renderAll(cfChart);
+            });
+            }
+    }); 
+    }
     $.extend($.fn, {
         initMemCPUSparkLines: function(data, parser, propertyNames, slConfig) {
             var selector = $(this);
@@ -29,9 +442,14 @@
         },
         initScatterChart:function (data) {
             var origData;
+            var data = $.extend(true,{},data);
+            //Nodes that don't have numeric x & y values and those will be plotted at intersection of axis 
+            var errorNodeCnt = 0;
             var currData = $.extend(true,{},data);
             var selector = $(this), toFormat = '',
-                chartOptions = ifNull(data['chartOptions'],{}), chart, yMaxMin, d;
+                chartOptions = ifNull(data['chartOptions'],{}), chart, yMaxMin; 
+            //Set data to populate to chart
+            var d;
             var hoveredOnTooltip,tooltipTimeoutId;
             var xLbl = ifNull(chartOptions['xLbl'], 'CPU (%)'),
                 yLbl = ifNull(chartOptions['yLbl'], 'Memory (MB)');
@@ -41,10 +459,6 @@
 
             var hoveredOnTooltip,tooltipTimeoutId,yLbl = ifNull(chartOptions['yLbl'], 'Memory (MB)');
             var yDataType = ifNull(chartOptions['yDataType'], '');
-            /*
-            var yLblFormat = function(y) {
-                return parseFloat(d3.format('.02f')(y)).toString();
-            }*/
             if (data['d'] != null)
                 d = data['d'];
             //Merge the data values array if there are multiple categories plotted in chart, to get min/max values
@@ -54,11 +468,13 @@
             dValues = flattenList(dValues);
             //copying the xfield and yfield values to x and y in charts data
             $.each(dValues,function(idx,obj){
-               if(obj['xField'] != null)
-                   obj['x'] = obj[obj['xField']];
-               if(obj['yField'] != null)
-                   obj['y'] = obj[obj['yField']];
-            });
+                    if(obj['xField'] != null)
+                        obj['x'] = obj[obj['xField']];
+                    if(obj['yField'] != null)
+                        obj['y'] = obj[obj['yField']];
+                    if(!$.isNumeric(obj['x']) && !$.isNumeric(obj['y']))
+                        errorNodeCnt++;
+                });
             var dataStack = [];
             var totalBucketizedNodes = 0;
             isBucketize = (chartOptions['isBucketize'])? true: false;
@@ -71,16 +487,6 @@
                 xLblFormat = ifNull(chartOptions['xLblFormat'], d3.format('.02f'));
                 //yLblFormat = ifNull(data['xLblFormat'],d3.format('.02f'));
             }
-            /*
-            if (data['d'] != null)
-                d = data['d'];
-
-            //Merge the data values array if there are multiple categories plotted in chart, to get min/max values
-            var dValues = $.map(d,function(obj,idx) {
-                return obj['values'];
-            });
-            dValues = flattenList(dValues);
-            */
 
             if(chartOptions['yLblFormat'] == null) {
                 yLblFormat = function(y) {
@@ -194,7 +600,14 @@
                     }
                 });
             chartOptions['useVoronoi'] = false;
-            //initScatterBubbleChart(selector, d, chart, chartOptions);
+            //Adjust the size domain to have limit on minumum/maximum bubble size
+            var d3Scale = d3.scale.linear().range([1,2]).domain(chartOptions['sizeMinMax']);
+            $.each(d,function(idx,currSeries) {
+                currSeries['values'] = $.each(currSeries['values'],function(idx,obj) {
+                        obj = $.extend(obj,{multiTooltip:true,size:d3Scale(obj['size'])}); 
+                        //obj['size']  = d3Scale(obj['size']);
+                    });
+            });
             if(!isScatterChartInitialized("#"+$(selector).attr('id'))) {
                 origData = currData;
                  if(data['loadedDeferredObj'] != null)
@@ -215,292 +628,13 @@
                          }
                          if(chartOptions['showSettings'] && $(selector).parent('div').find('.chart-settings').length == 0) {
                              $(selector).parent('div').prepend(contrail.getTemplate4Id('chart-settings')(settings));
-                             showAxisParams(settings);
+                             showAxisParams(selector,settings);
                          }
                      });
-                 }
-                 /*
-                  * This function accepts the crossfilterName,parameter on which the crossfilter chart need to be constructed,
-                  * formatFn(if required) and filterDimension constructs the crossfilter chart and returns it 
-                  */
-                 function getCrossFilterCharts(cfName,key,formatFn,filterDimension) {
-                     manageCrossFilters.addDimension(cfName, key, formatFn);
-                     var dimension = manageCrossFilters.getDimension(cfName, key);
-                     if(dimension.top(1).length > 0 ) {
-                         maxValue = parseFloat(d3.max(dimension.group().all(),function(d) {return d['key']}));
-                         barHeight = d3.max(dimension.group().all(),function(d) {return d['value']});
-                     }
-                     var axisCFChart =  barChart()
-                                  .dimension(dimension)
-                                  .group(dimension.group())
-                                .x(d3.scale.linear()
-                                  .domain([0,(maxValue+(maxValue * 0.1))])//Added 1% buffer 
-                                  .rangeRound([0, 300]))
-                                .y(d3.scale.linear()
-                                   .domain([0,barHeight])
-                                   .range([30,0]));
-                     return axisCFChart;
-                 }
-                 /*
-                  * This function constructs the dynamic axis in the chart settings
-                  */
-                 function showAxisParams(settings) {
-                     var selParent = $(selector).parent('div');
-                     var doBucketize =  (!getCookie(DO_BUCKETIZE_COOKIE))? defaultBucketize : (getCookie(DO_BUCKETIZE_COOKIE) == 'yes')? true : false;
-                     var maxBucketizeLevel =  (!getCookie(BUCKETIZE_LEVEL_COOKIE))? defaultBucketsPerAxis : parseInt(getCookie(BUCKETIZE_LEVEL_COOKIE));
-                     var bucketsPerAxis =  (!getCookie(BUCKETS_PER_AXIS_COOKIE))? defaultMaxBucketizeLevel : parseInt(getCookie(BUCKETS_PER_AXIS_COOKIE));
-                     if(doBucketize){
-                         $(selParent).find('#checkbox-bucketize').prop('checked', true);
-                         $(selParent).find('#div-bucket-options').show();
-                     } else { 
-                         $(selParent).find('#checkbox-bucketize').prop('checked', false);
-                         $(selParent).find('#div-bucket-options').hide();
-                     }
-                     $(selParent).find('#chartSettingsBucketMaxBucketizeLevel').val(maxBucketizeLevel);
-                     $(selParent).find('#chartSettingsBucketPerAxis').val(bucketsPerAxis);
-                     
-                     //on selection of bucketize checkbox add/remove bucketization
-                     $(selParent).find('#checkbox-bucketize').change(function(e){
-                         var origData = $(selector).data('origData');
-                         var chartObj = $.extend(true,{},origData);
-                         if ($(selParent).find('#checkbox-bucketize').is(":checked")){
-                             setCookie(DO_BUCKETIZE_COOKIE,'yes');
-                             $(selParent).find('#div-bucket-options').show();
-                             $(selParent).find('.bucketize-reset').show();
-                             if(chartOptions['isBucketize'] != true){
-                                 chartOptions['isBucketize'] = true;
-                                 chartObj['chartOptions'] = chartOptions;
-                                 $(selector).initScatterChart(chartObj);
-//                                 manageCrossFilters.fireCallBacks('vRoutersCF');
-                             }
-                         } else {
-                             setCookie(DO_BUCKETIZE_COOKIE,'no');
-                             $(selParent).find('#div-bucket-options').hide();
-                             $(selParent).find('.bucketize-reset').hide();
-                             chartOptions['isBucketize'] = false;
-                             chartObj['chartOptions'] = chartOptions;
-//                             manageCrossFilters.fireCallBacks('vRoutersCF');
-                             $(selector).initScatterChart(chartObj);
-                         }
-                     });
-                     //on click of the bucketization apply button apply the settings
-                     $(selParent).find('button.btnBucketSettingsApply').bind('click',function(clickEvt){
-                         var origData = $(selector).data('origData');
-                         var bucketOptions = origData.chartOptions.bucketOptions;
-                         if(bucketOptions == null){
-                             bucketOptions = {};
-                         }
-                         var maxBucketizeLevel = $(selParent).find('#chartSettingsBucketMaxBucketizeLevel').val();
-                         var bucketsPerAxis = $(selParent).find('#chartSettingsBucketPerAxis').val();
-                         //Save the values in cookies
-                         setCookie(BUCKETIZE_LEVEL_COOKIE,maxBucketizeLevel);
-                         setCookie(BUCKETS_PER_AXIS_COOKIE,bucketsPerAxis);
-                         
-                         bucketOptions.maxBucketizeLevel = maxBucketizeLevel;
-                         bucketOptions.bucketsPerAxis = bucketsPerAxis;
-                         origData.chartOptions.bucketOptions = bucketOptions;
-                         $(selector).data('origData',origData);
-                         var chartObj = $.extend(true,{},origData);
-                         $(selector).initScatterChart(chartObj);
-                     });
-                     //on click of bucketization remove 
-                     $(selParent).find('#chart-settings-bucketization-remove').bind('click',function(clickEvt){
-                         var origData = $(selector).data('origData');
-                         var chartObj = $.extend(true,{},origData);
-                         $(selParent).find('.bucketize-reset').hide();
-                         $(selParent).find('#checkbox-bucketize').attr("checked", false);
-                         $(selParent).find('#div-bucket-options').hide();
-                         chartOptions['isBucketize'] = false;
-                         chartObj['chartOptions'] = chartOptions;
-                         $(selector).initScatterChart(chartObj);
-                     });
-                     //show the settings on click of options link on the chart
-                     $(selParent).find('div.chart-settings-hide .chart-setting-options').bind('click',function(clickEvt){
-                         $('div.chart-settings-hide').addClass('hide');
-                         $('div.chart-settings-wrapper').removeClass('hide');
-                         $(selParent).find('div.chart-settings-wrapper').removeClass('hide');
-                         $(selParent).find('div i').on('click',function(){
-                             $('div.chart-settings-wrapper').addClass('hide');
-                             $('div.chart-settings-hide').removeClass('hide');
-                         });
-                         var chartObj = $.extend(true,{},data);
-                         var updateChartParams = chartObj['chartOptions'];
-                         //var chartData = d3.select($(selector).find('svg')[0]).datum(),values = [],defaultKeys = {},filterDimension;
-                         var origData = $(selector).data('origData'),values = [],defaultKeys = {},filterDimension,chartData;
-                         chartData = origData;
-                         $.each(chartData['d'],function(idx,data){
-                             values = $.merge(values,data['values']); 
-                         });
-                         //var dataCrossFilter = crossfilter(values);
-                         var cfName = chartOptions['crossFilter'];
-                         manageCrossFilters.updateCrossFilter(cfName, values);
-                         var dataCrossFilter = manageCrossFilters.getCrossFilter(cfName);
-                         var cfCharts = [],cfChart;
-                         $.each(settings,function(idx,setVal){
-                             var id = setVal['id'],data = [];
-                             var axisType = id.indexOf('xAxis') > -1 ? 'x' : 'y';
-                             $("#"+id).contrailDropdown({
-                                 dataTextField:"text",
-                                 dataValueField:"value",
-                                 change:function(e) {
-                                     var chartData = $(selector).data('origData')['d'],field,type,formatFn,dataType,lbl,key;
-                                     var selValue = $(e['target']).data('contrailDropdown').getSelectedData()[0]['text'];
-                                     updateChartParams['tooltipFn'] = tooltipFn;
-                                     $.each(chartData,function(idx,dataItem){
-                                         $.each(dataItem['values'],function(sIdx,value){
-                                             $.each(chartOptions[id],function(index,obj){
-                                                if(obj['lbl'] == selValue) {
-                                                    var range = [],updatedRange = [];
-                                                     /* here if type is null, considering it as default data type integer
-                                                     * In case of single point (which mean only one bubble or main bubbles with same x and y value)
-                                                     * minimum and maximum will be same so whole axis will have only two values so we are setting the domain.
-                                                     */
-                                                    field = axisType == 'x'? 'xField' : 'yField';
-                                                    type = obj['type'],dataType = obj['dataType'];
-                                                    lbl = obj['lbl'],key = obj['key'];
-                                                    if(obj['formatFn'] != null) {
-                                                        value[field] = obj['key'];
-                                                        value[obj['key']] = parseInt(obj['formatFn'](value[obj['key']]));
-                                                        formatFn = obj['formatFn'];
-                                                    } else {
-                                                        if(type != null) {
-                                                            updateChartParams[axisType+"LblFormat"] = d3.format('.02f');
-                                                            value[field] = obj['key'];
-                                                            value[obj['key']] = parseFloat(value[obj['key']]);
-                                                            formatFn = d3.format('.02f');
-                                                        } else {
-                                                            updateChartParams[axisType+"LblFormat"] = d3.format('0d');
-                                                            value[field] = obj['key'];
-                                                            value[obj['key']] = parseInt(value[obj['key']]);
-                                                            formatFn = d3.format('0d');
-                                                        }
-                                                    }
-                                                }
-                                             });
-                                         }); 
-                                     });
-                                     range = d3.extent(values,function(item){return item[item[field]]});
-                                     if(type == null && range[1] == range[0]) {
-                                         range[0] = (range[0] - range[0] * 0.05 < 0 ) ? 0 : Math.floor(range[0] - range[0] * 0.05);
-                                         range[1] = Math.ceil(range[1] + range[1] * 0.05);
-                                         updateChartParams[axisType+"Domain"] = [range[0],range[1]]; 
-                                     } 
-                                     if(dataType == 'bytes') {
-                                         var result = formatByteAxis(chartData);
-                                         chartData = result['data'];
-                                         updateChartParams[axisType+'Lbl'] = lbl + result[axisType+'Lbl'];
-                                     } else 
-                                         updateChartParams[axisType+'Lbl'] = lbl;
-                                     if (dataCrossFilter != null) {
-                                         var selParamCfChart = [];
-                                         //we are deleting the html content because crossfilter is checking for global tag empty and stops 
-                                         //rendering again
-                                         $('#'+id+"_crossfilter").html('');
-                                         var selParamCfChartObj = getCrossFilterCharts(cfName,key,formatFn,filterDimension);
-                                         selParamCfChart.push(selParamCfChartObj);
-                                         var selParamCfCharts =  d3.selectAll('#'+id+"_crossfilter")
-                                                                   .data(selParamCfChart)
-                                                                   .each(function(currChart){
-                                                                       currChart.on('brush',function(){
-                                                                           var filteredData = filterDimension.top(Infinity);
-                                                                           chartObj['d'] = filteredData;
-                                                                           //$(selector).initScatterChart(chartObj);
-                                                                       }).on("brushend",function(){
-                                                                           var filteredData = filterDimension.top(Infinity);
-                                                                           if (chartObj['chartOptions']['dataSplitFn'] != null && 
-                                                                                   typeof chartObj['chartOptions']['dataSplitFn'] == 'function') {
-                                                                               chartObj['d'] = chartObj['chartOptions']['dataSplitFn'](filteredData);
-                                                                           } else 
-                                                                               chartObj['d'] = filteredData;
-                                                                           $(selector).initScatterChart(chartObj);
-                                                                       });
-                                                                   });
-                                         renderAll(selParamCfCharts);
-                                     }
-                                     chartObj['d'] = chartData;
-                                     chartObj['chartOptions'] = updateChartParams;
-                                     $(selector).initScatterChart(chartObj);
-                                 }
-                             });
-                             $.each(chartOptions[id],function(idx,obj){
-                                 if(obj['defaultParam'])
-                                     defaultKeys[id] = obj;
-                                 var obj = {
-                                         id:obj['lbl'],
-                                         text:obj['lbl'],
-                                         value:obj['lbl']
-                                 };
-                                 data.push(obj);
-                             });
-                             $("#"+id).data('contrailDropdown').setData(data);
-                             if(dataCrossFilter != null) {
-                                 var formatFn;
-                                 if(defaultKeys[id]['formatFn'] != null) {
-                                     formatFn = defaultKeys[id]['formatFn'];
-                                 } else {
-                                     if(defaultKeys[id]['type'] != null)
-                                         formatFn = d3.format('.02f')
-                                     else
-                                         formatFn = d3.format('0d');
-                                 }
-                                 manageCrossFilters.addDimension(cfName, defaultKeys[id]['key'], formatFn);
-                                 /*
-                                  * Filter dimension to be used for data retrieval
-                                  */
-                                 filterDimension = manageCrossFilters.getDimension(cfName,axisType);
-                                 var dimension = manageCrossFilters.getDimension(cfName, defaultKeys[id]['key']);
-                                 if(dimension.top(1).length > 0 ) {
-                                     maxValue = parseFloat(d3.max(dimension.group().all(),function(d) {return d['key']}));
-                                     barHeight = d3.max(dimension.group().all(),function(d) {return d['value']});
-                                 }
-                                 var dataCrossFilterObj = getCrossFilterCharts(cfName,defaultKeys[id]['key'],formatFn,filterDimension);
-                                 $("#"+id+"_crossfilter").data('chartObj',dataCrossFilterObj);
-                                 $("#"+id+"_crossfilter").data('axis',axisType);
-                                 cfCharts.push(dataCrossFilterObj);
-                             }
-                         });
-                         if(cfCharts.length > 0) {
-                             var cfChart =  d3.selectAll('.chart')
-                                              .data(cfCharts)
-                                              .each(function(currChart){
-                                                    currChart.on('brush',function(){
-                                                        //nothing to do for now
-                                                    }).on("brushend",function() {
-                                                        var filteredData = filterDimension.top(Infinity);
-                                                        if (chartObj['chartOptions']['dataSplitFn'] != null && 
-                                                                typeof chartObj['chartOptions']['dataSplitFn'] == 'function') {
-                                                            chartObj['d'] = chartObj['chartOptions']['dataSplitFn'](filteredData);
-                                                        } else 
-                                                            chartObj['d'] = filteredData;
-                                                        $(selector).initScatterChart(chartObj);
-                                                        //renderAll(cfChart);
-                                                    });
-                                              });
-                            renderAll(cfChart);
-                            $('.reset').bind('click',function(){
-                               var cfDiv = $(this).closest('.chart');
-                               var cfObj = $(cfDiv).data('chartObj');
-                               var axis = $(cfDiv).data('axis');
-                               //Need to reset the filter based on the axis
-                               cfObj.filter(null);
-                               var filteredData = cfObj.dimension().top(Infinity);
-                               if (chartObj['chartOptions']['dataSplitFn'] != null && 
-                                       typeof chartObj['chartOptions']['dataSplitFn'] == 'function') {
-                                   chartObj['d'] = chartObj['chartOptions']['dataSplitFn'](filteredData);
-                               } else 
-                                   chartObj['d'] = filteredData;
-                               //chartObj['d'] = chartData['d'];
-                               $(selector).initScatterChart(chartObj);
-                               renderAll(cfChart);
-                            });
-                         }
-                    }); 
                  }
                 console.info('calling initScatterBubbleChart',d);
                 initScatterBubbleChart(selector, d, chart, chartOptions);
                 var chartid = $(selector).attr('id');
-              //if(!isScatterChartInitialized("#"+$(selector).attr('id'))){
-                
                 var d = origData['d'];
                 var totalNodesCnt = 0;
                 if(d!= null && d instanceof Array){
@@ -510,161 +644,23 @@
                 }
                 $("#"+ chartid).data('origData',origData);
                 $("#"+ chartid).data('origDataCount',totalNodesCnt);
-            //}
             } else {
                  chart = $(selector).data('chart');
                  var svg = $(selector).find('svg')[0];
                  chart = setChartOptions(chart,chartOptions);
-                 d3.select(svg).datum(currData['d']);
-                 //$(selector).data('origData',currData);
+                 d3.select(svg).datum(d);
                  if(chart.update != null)
                      chart.update();
             }
               var chartid = $(selector).attr('id');
               //Update the header if required with shown and total count
               var totalCnt = $("#"+ chartid).data('origDataCount');
-              var filteredCnt = totalBucketizedNodes;
+              var filteredCnt = totalBucketizedNodes + errorNodeCnt;
             if(chartOptions['updateHeaderCount'])
                 updatevRouterLabel($(selector).parents().find('.widget-box').find('.widget-header'),filteredCnt,totalCnt);
             if(data['widgetBoxId'] != null)
                 endWidgetLoading(data['widgetBoxId']);
 
-            /**
-             * function takes the parameters tooltipContainer object and the tooltip array for multitooltip and binds the 
-             * events like drill down on tooltip and click on left and right arrows
-             * @param result
-             * @param tooltipContainer
-             */
-            function bindEventsOverlapTooltip(result,tooltipContainer) {
-                var page = 1;
-                var perPage = result['perPage'];
-                var pagestr = "";
-                var data = [];
-                result['perPage'] = perPage;
-                data = $.extend(true,[],result['content']); 
-                result['content'] = result['content'].slice(0,perPage);
-                if(result['perPage'] > 1)
-                    result['pagestr'] = 1 +" - "+result['content'].length +" of "+data.length;
-                else if(result['perPage'] == 1)
-                    result['pagestr'] = 1 +" / "+data.length;
-                $(tooltipContainer).find('div.enabledPointer').parent().html(formatLblValueMultiTooltip(result));
-                $(tooltipContainer).find('div.left-arrow').on('click',function(e){
-                    result['button'] = 'left';
-                    handleLeftRightBtnClick(result,tooltipContainer);
-                });
-                $(tooltipContainer).find('div.right-arrow').on('click',function(e){
-                    result['button'] = 'right';
-                    handleLeftRightBtnClick(result,tooltipContainer);
-                });
-                $(tooltipContainer).find('div.tooltip-wrapper').find('div.chart-tooltip').on('click',function(e){
-                    bubbleDrillDown($(this).find('div.chart-tooltip-title').find('p').text(),result['nodeMap']);
-                });
-                $(tooltipContainer).find('div.enabledPointer').on('mouseover',function(e){
-                    hoveredOnTooltip = true; 
-                });
-                $(tooltipContainer).find('div.enabledPointer').on('mouseleave',function(e){
-                    hoveredOnTooltip = false;
-                    nv.tooltip.cleanup();
-                });
-                $(tooltipContainer).find('button.close').on('click',function(e){
-                    hoveredOnTooltip = false;
-                    nv.tooltip.cleanup();
-                });
-                function handleLeftRightBtnClick(result,tooltipContainer) {
-                       var content = [];
-                       var leftPos = 'auto',rightPos = 'auto';
-                       if(result['button'] == 'left') {
-                            if($(tooltipContainer).css('left') == 'auto') {
-                                leftPos = $(tooltipContainer).position()['left'];
-                                $(tooltipContainer).css('left',leftPos);
-                                $(tooltipContainer).css('right','auto');
-                            }
-                            if(page == 1)
-                                return;
-                            page = page-1;
-                            if(result['perPage'] > 1)
-                                pagestr = (page - 1) * perPage+1 +" - "+ (page) * perPage;
-                            else if(result['perPage'] == 1)
-                                pagestr = (page - 1) * perPage+1;
-                            if(page <= 1) {
-                                if(result['perPage'] > 1)
-                                    pagestr = 1 +" - "+ (page) * perPage;
-                                else if(result['perPage'] == 1)
-                                    pagestr = 1;
-                            }
-                            content = data.slice((page-1) * perPage,page * perPage);
-                      } else if (result['button'] == 'right') {
-                          if($(tooltipContainer).css('right') == 'auto') {
-                              leftPos = $(tooltipContainer).position()['left'];
-                              rightPos = $(tooltipContainer).offsetParent().width() - $(tooltipContainer).outerWidth() - leftPos;
-                              $(tooltipContainer).css('right', rightPos);
-                              $(tooltipContainer).css('left','auto');
-                          }
-                            if(Math.ceil(data.length/perPage) == page)
-                                return;
-                            page += 1;
-                            if(result['perPage'] > 1)
-                                pagestr = (page - 1) * perPage+1 +" - "+ (page) * perPage;
-                            else if(result['perPage'] == 1)
-                                pagestr = (page - 1) * perPage+1;
-                            content = data.slice((page-1) * perPage,page * perPage);
-                            if(data.length <= page * perPage) {
-                                if(result['perPage'] > 1)
-                                    pagestr = (data.length-perPage)+1 +" - "+ data.length;
-                                else if(result['perPage'] == 1)
-                                    pagestr = (data.length-perPage)+1;
-                                content = data.slice((data.length - perPage),data.length);
-                            } 
-                      }
-                      leftPos = $(tooltipContainer).position()['left'];
-                      rightPos = $(tooltipContainer).offsetParent().width() - $(tooltipContainer).outerWidth() - leftPos;
-                      result['content'] = content;
-                      if(result['perPage'] > 1)
-                          pagestr += " of "+data.length;
-                      else if(result['perPage'] == 1)
-                          pagestr += " / "+data.length;
-                      result['perPage'] = perPage;
-                      $(tooltipContainer).css('left',0);
-                      $(tooltipContainer).css('right','auto');
-                      $(tooltipContainer).find('div.tooltip-wrapper').html("");
-                      for(var i = 0;i<result['content'].length ; i++) {
-                          $(tooltipContainer).find('div.tooltip-wrapper').append(formatLblValueTooltip(result['content'][i]));
-                      }
-                      $(tooltipContainer).find('div.pagecount span').html(pagestr);
-                      if(result['button'] == 'left') {
-                        //Incase the tooltip doesnot accomodate in the right space available 
-                          if($(tooltipContainer).outerWidth() > ($(tooltipContainer).offsetParent().width() - leftPos)){
-                              $(tooltipContainer).css('right',0);
-                              $(tooltipContainer).css('left','auto');
-                          } else {
-                              $(tooltipContainer).css('left',leftPos);
-                          }
-                      } else if(result['button'] == 'right') {
-                          //Incase the tooltip doesnot accomodate in the left space available  
-                          if($(tooltipContainer).outerWidth() > ($(tooltipContainer).offsetParent().width() - rightPos)){
-                              $(tooltipContainer).css('left',0);
-                          } else {
-                              $(tooltipContainer).css('right',rightPos);
-                              $(tooltipContainer).css('left','auto');
-                          }
-                      }
-                      //binding the click on tooltip for bubble drill down
-                      $(tooltipContainer).find('div.tooltip-wrapper').find('div.chart-tooltip').on('click',function(e){
-                          bubbleDrillDown($(this).find('div.chart-tooltip-title').find('p').text(),result['nodeMap']);
-                      });
-                }
-                function bubbleDrillDown(nodeName,nodeMap) {
-                    var e = nodeMap[nodeName];
-                    if(typeof(chartOptions['clickFn']) == 'function')
-                        chartOptions['clickFn'](e['point']);
-                    else
-                        processDrillDownForNodes(e);
-                }
-                $(window).off('resize.multiTooltip');
-                $(window).on('resize.multiTooltip',function(e){
-                    nv.tooltip.cleanup();
-                });
-            }
             //drag support
             d3.select($(selector)[0]).select('svg').call(dragSrc
                 .on("drag", function(d, i){
@@ -997,7 +993,35 @@ function disperseRandomly(nodes,maxVariation){
     return nodes;
 }
 
+function disperseNodes(obj){
+    var retNodes = []
+    if(obj != null && obj['isBucket']){
+        retNodes = obj['children'];
+//        var x = obj['x'];
+//        var y = obj['y'];
+//        for(var i=0;i < obj['size']; i++){
+//            var newX = getRandomValue(x - (x* 0.05), x + (x* 0.05)); 
+//            var newY = getRandomValue(y - (y* 0.05), y + (y* 0.05));
+//            retNodes[i]['x'] = newX;
+//            retNodes[i]['y'] = newY;
+//        }
+        retNodes = disperseRandomly(retNodes,0.05);
+    }
+    return retNodes;
+}
+
+function filterAndDisperseNodes(data,minMaxX,minMaxY){   
+    var filteredNodes = fetchNodesBetweenXAndYRange(data,
+                                                    minMaxX, 
+                                                    minMaxY
+                                                    );
+    var ret = data;
+    ret = disperseRandomly(filteredNodes,0.05);
+    return ret;
+}
+
 function doBucketization(data,chartOptions){
+    var data = $.extend(true,{},data);
     var d;
     var minMax, minMaxX, minMaxY, parentMinMax, currLevel, maxBucketizeLevel, bucketsPerAxis;
     var bucketOptions = chartOptions.bucketOptions;
@@ -1010,7 +1034,7 @@ function doBucketization(data,chartOptions){
     }
     maxBucketizeLevel = (!getCookie(BUCKETIZE_LEVEL_COOKIE))? defaultMaxBucketizeLevel : parseInt(getCookie(BUCKETIZE_LEVEL_COOKIE));
     bucketsPerAxis = (!getCookie(BUCKETS_PER_AXIS_COOKIE))? defaultBucketsPerAxis : parseInt(getCookie(BUCKETS_PER_AXIS_COOKIE));
-    //attach the original data to the chart div only if the chart is not already intialized
+    //attach the original data to the chart div only if the chart is not already initialized
     if (data['d'] != null) {
         d = data['d'];
         if(minMax == null){
@@ -1917,4 +1941,44 @@ function filterUsingGlobalCrossFilter(cfName,xMinMax,yMinMax){
     manageCrossFilters.applyFilter(cfName, 'x', xMinMax);
     manageCrossFilters.applyFilter(cfName, 'y', yMinMax);
     manageCrossFilters.fireCallBacks(cfName);
+}
+
+function filterAndUpdateScatterChart(chartId,chartsData){
+    var bucketOptions = chartsData.chartOptions.bucketOptions;
+    var minMaxX,minMaxY;
+    var minMax = bucketOptions.minMax;
+    var filteredNodeNames = [];
+    var data = chartsData['d'];
+    var crossFilter = chartsData.chartOptions.crossFilter;
+    
+    if(minMax == null){
+        var allData = [];
+        $.each(data,function(i,d){
+           allData = allData.concat(d['values']); 
+        });
+        minMaxX = d3.extent(allData,function(obj){
+            return obj['x'];
+        });
+        minMaxY = d3.extent(allData,function(obj){
+            return obj['y'];
+        });
+        
+    } else {
+        minMaxX = minMax.minMaxX;
+        minMaxY = minMax.minMaxY;
+    }
+    chartsData.chartOptions.bucketOptions.minMax = {minMaxX:minMaxX,minMaxY:minMaxY};
+    //Just to bring in the nodes on the borders
+    minMaxX[0] = minMaxX[0] - (minMaxX[0] * 0.01);
+    minMaxX[1] = minMaxX[1] + (minMaxX[1] * 0.01);
+    minMaxY[0] = minMaxY[0] - (minMaxY[0] * 0.01);
+    minMaxY[1] = minMaxY[1] + (minMaxY[1] * 0.01);
+    
+    
+    for(var i=0; i < data.length; i++){
+        var d = data[i]['values'];
+        //filter the nodes between x and y range
+        fetchNodesBetweenXAndYRange(crossFilter, minMaxX, minMaxY);
+    }
+    $('#' + chartId).initScatterChart(chartsData);
 }

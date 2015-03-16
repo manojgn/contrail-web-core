@@ -2882,7 +2882,7 @@ function ManageCrossFilters() {
             if(criteria == null){
                 this.removeFilter(cfName,dimensionName);
             } else {
-                var filterByCriteria = dimension.filter(criteria);
+                var filterByCriteria = dimension.filterRange(criteria);
             }
             var thirdDimension = cf.dimension(function(d) { return d[dimensionName]; });
             var t = thirdDimension.top(Infinity);
