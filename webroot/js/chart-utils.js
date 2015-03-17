@@ -1,6 +1,20 @@
 /*
  * Copyright (c) 2014 Juniper Networks, Inc. All rights reserved.
  */
+//Bucketization Options
+var defaultBucketize = true;
+//Maximum upto which the chart data should be bucketized
+var defaultMaxBucketizeLevel = 3; 
+//Determines what param will be used to depict the size of the bubble in infra charts
+var defaultBucketSizeParam = "size"; 
+//Determines how many buckets need to created per axis. If 7 creates 7 x 7 = 49 buckets and groups the nodes
+var defaultBucketsPerAxis = 4;
+//Cookie name to be used to store the settings for bucketization
+var DO_BUCKETIZE_COOKIE = 'doBucketize';
+//Cookie name to be used to store the settings for MaxBucketizeLevel
+var BUCKETIZE_LEVEL_COOKIE = 'bucketizeLevel';
+//Cookie name to be used to store the settings for BucketsPerAxis
+var BUCKETS_PER_AXIS_COOKIE = 'bucketsPerAxis';
 (function ($) {
     var dragSrc = d3.behavior.drag();
     /**
@@ -480,10 +494,15 @@
             isBucketize = (chartOptions['isBucketize'])? true: false;
             if(isBucketize){
                 data = doBucketization(data,chartOptions);
-                totalBucketizedNodes = getTotalBucketizedNodes(data['d']);
+                d = data['d'];
+                totalBucketizedNodes = getTotalBucketizedNodes(d);
+                //Merge the data values array if there are multiple categories plotted in chart, to get min/max values
+                var dValues = $.map(d,function(obj,idx) {
+                    return obj['values'];
+                });
             }
             if ($.inArray(ifNull(data['title'], ''), ['vRouters', 'Analytic Nodes', 'Config Nodes', 'Control Nodes']) > -1) {
-                chartOptions['forceX'] = [0, 0.15];
+                //chartOptions['forceX'] = [0, 0.15];
                 xLblFormat = ifNull(chartOptions['xLblFormat'], d3.format('.02f'));
                 //yLblFormat = ifNull(data['xLblFormat'],d3.format('.02f'));
             }
@@ -601,11 +620,10 @@
                 });
             chartOptions['useVoronoi'] = false;
             //Adjust the size domain to have limit on minumum/maximum bubble size
-            var d3Scale = d3.scale.linear().range([1,2]).domain(chartOptions['sizeMinMax']);
+            var d3Scale = d3.scale.linear().range([1.5,6]).domain(chartOptions['sizeMinMax']);
             $.each(d,function(idx,currSeries) {
                 currSeries['values'] = $.each(currSeries['values'],function(idx,obj) {
                         obj = $.extend(obj,{multiTooltip:true,size:d3Scale(obj['size'])}); 
-                        //obj['size']  = d3Scale(obj['size']);
                     });
             });
             if(!isScatterChartInitialized("#"+$(selector).attr('id'))) {
@@ -803,20 +821,7 @@ function scatterOverlapBubbles (data){
     data[0]['values'] = bubbles;
     return data;	
 }
-/*
-function bucketize(data,minMaxX,minMaxY){
-    var d;
-    var ret = $.extend(true,{},data);
-    ret['parent'] = data;
-    if (data['d'] != null)
-        d = data['d'];
-    for(var i = 0;i < d.length; i++ ) {
-        var values = [];
-        d[i]['values'] = putInBuckets(d[i]['values'],data,minMaxX,minMaxY); 
-    }
-    ret['d'] = d;
-    return ret;
-}*/
+
 function bucketize(d,options){
     //find the min and max and decide the bucket values for both x and y
     var xTotal = 0;
@@ -840,10 +845,6 @@ function bucketize(d,options){
         yBucket[i] = [];
     });
 
-//    var dataCF = crossfilter(d);
-//    var xDimension = dataCF.dimension(function(d) { return d.x; });
-//    var yDimension = dataCF.dimension(function(d) { return d.y; });
-//    var thirdDimension = dataCF.dimension(function(d) { return d.x; });
     for(var i = 0 ; i < BUCKET_SIZE ; i++){
         for(var j = 0; j < BUCKET_SIZE ;j++){
             var minMaxXStops = [xStops[i], xStops[i + 1]];
@@ -856,14 +857,14 @@ function bucketize(d,options){
                 var mergedNode = mergeBucketIntoSingleNode(filteredNodes,minMaxXStops,minMaxYStops,minMaxX,minMaxY);
                 //check if all the nodes in the filteredNodes is having same x,y values and mark them 
                 var nodeX,nodeY;
-                mergedNode['allSameValues'] = true
+                mergedNode['allSameValues'] = true; 
                 $.each(filteredNodes,function(i,obj){
                     if(i==0){
                         nodeX = obj.x;
                         nodeY = obj.y;
                     } else {
                         if (!(nodeX == obj.x && nodeY == obj.y)){
-                            mergedNode['allSameValues'] = false;
+                            mergedNode['allSameValues'] = false; 
                         }
                     }
                 });
@@ -871,63 +872,14 @@ function bucketize(d,options){
             }
         }
     }
-    //bucketize x axis
-//    $.each(d,function(idx,obj){
-//        for(var i=0; i<BUCKET_SIZE; i++){
-//            if((obj['x'] >= xStops[i]) && (obj['x'] <= xStops[i+1])){
-//                xBucket[i].push(obj);
-//                break;
-//            }
-//        }
-//    });
-//    //bucketize y axis
-//    $.each(xBucket,function(idx,arrX){
-//        yBucket = new Array(BUCKET_SIZE);
-//        $.each(yBucket,function(i,d){
-//            yBucket[i] = [];
-//        });
-//        $.each(arrX,function(index,obj){
-//           for(var i=0; i<BUCKET_SIZE; i++){
-//               if((obj['y'] >= yStops[i]) && (obj['y'] <= yStops[i+1])){
-//                   yBucket[i].push(obj);
-//               }
-//           }
-//        });
-//        $.each(yBucket,function(j,arrY){
-//            if(arrY.length > 0){
-//                 finalBucket.push(arrY);
-//            }
-//        });
-//    });
-  /*  var nest = d3.nest()
-    .key(function(obj) { return obj['x']; })
-    .key(function(obj) { return obj['y']; })
-    .entries(d);
-    var nest = d3.nest()
-    .key(function(obj) { return ((obj['x'] > xStops[0]) && (obj['x'] < xStops[1]))?'x1':null; })
-    .key(function(obj) { return ((obj['y'] > yStops[0]) && (obj['y'] < yStops[1]))?'y1':null; })
-    .entries(d);*/
-    //ret = mergeBucketIntoSingleNode(finalBucket,origData);
     return finalBucket;
 }
 function mergeBucketIntoSingleNode(filteredNodes,minMaxX,minMaxY,parentMinMaxX,parentMinMaxY){
-   // $.each(filteredNodes,function(idx,arr){
         var avgX,avgY;
         var sumX = sumY = 0;
         var children = filteredNodes;
         var obj = {};
         obj['color'] = filteredNodes[0].color;
-        /*$.each(filteredNodes,function(i,node){
-            if(node['color'] == d3Colors['red']){
-                obj['color'] = d3Colors['red'];
-            } else if ((obj['color']  != d3Colors['red']) && (node['color'] == d3Colors['orange'])) {
-                obj['color'] = d3Colors['orange'];
-            }
-            sumX += node['x'];
-            sumY += node['y'];
-        });
-        avgX = sumX / filteredNodes.length;
-        avgY = sumY / filteredNodes.length;*/
         if(filteredNodes.length > 1){
             avgX = d3.mean(filteredNodes,function(d){return d.x});
             avgY = d3.mean(filteredNodes,function(d){return d.y});
@@ -936,8 +888,8 @@ function mergeBucketIntoSingleNode(filteredNodes,minMaxX,minMaxY,parentMinMaxX,p
                 totatlIntfCnt += d['intfCnt'];
             });
             //this is to deviate a little bit from the middle
-            avgX = disperseRandomly([avgX],0.05)[0];
-            avgY = disperseRandomly([avgY],0.05)[0];
+            // avgX = disperseRandomly([avgX],0.05)[0];
+            // avgY = disperseRandomly([avgY],0.05)[0];
             obj['x'] = avgX;
             obj['y'] = avgY;
             obj['intfCnt'] = totatlIntfCnt;
@@ -954,11 +906,6 @@ function mergeBucketIntoSingleNode(filteredNodes,minMaxX,minMaxY,parentMinMaxX,p
             obj['minMaxX'] = minMaxX;
             obj['minMaxY'] = minMaxY;
         }
-        
-//        obj['parentMinMaxX'] = parentMinMaxX;
-//        obj['parentMinMaxY'] = parentMinMaxY;
-        //finalBucket[idx] = obj;
-   // });
     return obj;
 }
 
@@ -985,6 +932,8 @@ function disperseRandomly(nodes,maxVariation){
     for(var i=0;i < nodes.length; i++){
         var x = nodes[i]['x'];
         var y = nodes[i]['y'];
+        //In case of random scatter,assign size as 1 as each node is plotted independently
+        nodes[i]['size'] = 1;
         var newX = getRandomValue(x - (x* maxVariation), x + (x* maxVariation)); 
         var newY = getRandomValue(y - (y* maxVariation), y + (y* maxVariation));
         nodes[i]['x'] = newX;
@@ -997,14 +946,6 @@ function disperseNodes(obj){
     var retNodes = []
     if(obj != null && obj['isBucket']){
         retNodes = obj['children'];
-//        var x = obj['x'];
-//        var y = obj['y'];
-//        for(var i=0;i < obj['size']; i++){
-//            var newX = getRandomValue(x - (x* 0.05), x + (x* 0.05)); 
-//            var newY = getRandomValue(y - (y* 0.05), y + (y* 0.05));
-//            retNodes[i]['x'] = newX;
-//            retNodes[i]['y'] = newY;
-//        }
         retNodes = disperseRandomly(retNodes,0.05);
     }
     return retNodes;
