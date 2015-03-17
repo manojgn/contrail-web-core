@@ -1478,11 +1478,11 @@ var ContrailDataView = function(dvConfig) {
             this.endUpdate();
         },
         setSearchFilter: function(searchColumns, searchFilter) {
-            this.setFilterArgs({
+            /*this.setFilterArgs({
                 searchString: '',
                 searchColumns: searchColumns
             });
-            this.setFilter(searchFilter);
+            this.setFilter(searchFilter);*/
         },
         addData: function(data){
             var dis = this;
