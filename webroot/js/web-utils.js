@@ -2993,8 +2993,11 @@ function ManageCrossFilters() {
         var callBacks = this.getCallBacks(cfName);
         var ret = {};
         if(callBacks != null){
+            var data = this.getCurrentFilteredData(cfName);
+            ret['data'] = data;
+            ret['cfg'] = {};
             if(options != null && options.source != null){
-                ret['source'] = options.source;
+                ret['cfg']['source'] = options.source;
             }
             callBacks.fire(ret);
         }
