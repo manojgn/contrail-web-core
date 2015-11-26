@@ -877,7 +877,7 @@
                 multiSelectMenu.find('input[type="checkbox"]').addClass('ace-input');
             }
             multiSelectMenu.find('input[type="checkbox"]').next('span').addClass('ace-lbl');
-
+            multiSelectMenu.find('input[type="checkbox"]').next('span').prepend('<i class="icon-bell-alt icon-only icon-2"></i>')
             /*
              * Appending controls and related events
              */
