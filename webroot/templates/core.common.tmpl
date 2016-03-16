@@ -1666,7 +1666,6 @@
     <table class="contrail-editable-grid-table">
         <thead>
         <tr>
-        <th style="min-width:15px">&nbsp;</th>
             {{#each viewConfig.rows.0.columns}}
             <th class="{{this.class}}" data-bind="style: {width: '{{width}}px' }">
                 {{this.name}}
@@ -1685,8 +1684,6 @@
         </thead>
         <tbody data-bind="foreach: {{viewConfig.collection}}">
         <tr class="data-row">
-                    <td style="min-width:15px" {{#IfCompare viewConfig.rows.1.columns.length 0 operator='>'}}onclick="
-$(this).parent().closest('tr').next().closest('tr').next().slideToggle(20);$(this).children('i').toggleClass('icon-caret-down');$(this).children('i').toggleClass('icon-caret-right');"><i class="icon-caret-right toggleDetailIcon " ></i>{{/IfCompare}}</td>
             {{#each viewConfig.rows.0.columns}}
             <td id="{{elementId}}"
                 {{#IfCompare viewConfig.colSpan null operator='!='}}

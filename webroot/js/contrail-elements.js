@@ -1263,6 +1263,26 @@ function constructSelect2(self, defaultOption, args) {
             };
         }
 
+        if (defaultOption.multiple == true && defaultOption.showParentInSelection){
+            option['formatSelection'] = function (object) {
+                var allData = this.data;
+                var parent = '';
+                //find the parent
+                for (var i = 0 ; i < allData.length; i++) {
+                    if (allData[i].children && allData[i].children.length > 0){
+                        var children = allData[i]['children'];
+                        for (var j = 0 ;j < children.length; j++) {
+                            if (object[this.dataValueField.dsVar] == children[j][this.dataValueField.dsVar]) {
+                                parent = allData[i][this.dataTextField.dsVar];
+                                break;
+                            }
+                        }
+                    }
+                }
+                return (parent != '')?'<span style="font-weight:600">'+ parent + '</span>' + ' : ' + object.text : object.text;
+            }
+        }
+
         $.extend(true, option, defaultOption);
         option.dataTextField = {dsVar: option.dataTextField, apiVar: 'text'};
         option.dataValueField = {dsVar: option.dataValueField, apiVar: 'id'};
