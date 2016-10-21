@@ -60,6 +60,9 @@ define([
         },
 
         renderChart: function (selector, viewConfig, chartDataModel) {
+            if (!($(selector).is(':visible'))) {
+                return;
+            }
             var self = this,
                 data = chartDataModel.getItems(),
                 chartTemplate = contrail.getTemplate4Id(cowc.TMPL_CHART),
