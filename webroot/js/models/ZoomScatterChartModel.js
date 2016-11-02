@@ -44,7 +44,8 @@ define([
 
         self.refresh = function(chartConfig) {
             var rawData = dataListModel.getFilteredItems();
-            self.data = contrail.checkIfFunction(chartConfig['dataParser']) ? chartConfig['dataParser'](rawData) : rawData;
+            self.data = contrail.checkIfFunction(chartConfig['dataParser']) ?
+                    chartConfig['dataParser'](rawData,chartConfig) : rawData;
 
             if(chartConfig['doBucketize'] == true) {
                 self.data = doBucketization(self.data,chartConfig);
@@ -160,7 +161,7 @@ define([
             });
 
             //Set tickFormat only if specified
-            self.xAxis = d3.svg.axis().scale(self.xScale).orient("bottom").ticks(10)
+            self.xAxis = d3.svg.axis().scale(self.xScale).orient("bottom").ticks(chartConfig.xTickCount)
                 .tickSize(-self.height)
                 // .outerTickSize(0)
             if(chartConfig['doBucketize'] != true) {
@@ -168,7 +169,7 @@ define([
             } else if(chartConfig.xLabelFormat != null) {
                 self.xAxis.tickFormat(chartConfig.xLabelFormat);
             }
-            self.yAxis = d3.svg.axis().scale(self.yScale).orient("left").ticks(5)
+            self.yAxis = d3.svg.axis().scale(self.yScale).orient("left").ticks(chartConfig.yTickCount)
                 .tickSize(-self.width)
                 // .outerTickSize(0)
             if(chartConfig['doBucketize'] != true) {
@@ -178,11 +179,11 @@ define([
             }
 
             self.xMed = median(_.map(chartData, function (d) {
-                return d[chartConfig.xField];
+                return getValueByJsonPath(d,chartConfig.xField);
             }));
 
             self.yMed = median(_.map(chartData, function (d) {
-                return d[chartConfig.yField];
+                return getValueByJsonPath(d,chartConfig.yField);
             }));
         };
 
@@ -201,10 +202,10 @@ define([
         //If all nodes are closer,then adding 10% buffer on edges makes them even closer
         if(chartData.length > 0) {
             axisMax = d3.max(chartData, function (d) {
-                    return +d[fieldName];
+                    return +getValueByJsonPath(d,fieldName);
                 });
             axisMin = d3.min(chartData, function (d) {
-                    return +d[fieldName];
+                    return +getValueByJsonPath(d,fieldName);
                 });
 
             if (axisMax == null || axisMax === 0) {
@@ -384,7 +385,7 @@ define([
 
     function getBubbleSizeRange(values, sizeFieldName,chartConfig) {
         var sizeMinMax = d3.extent(values, function (obj) {
-            return  contrail.handleIfNaN(obj[sizeFieldName], 0)
+            return  contrail.handleIfNaN(getValueByJsonPath(obj,sizeFieldName), 0)
         });
         
         if(chartConfig.bubbleDefMaxValue > 0){
@@ -402,7 +403,7 @@ define([
                     // && Min value should not be 0 for this calculation.
                     var validMinSize = sizeMinMax[0];
                     if (validMinSize == 0) {
-                        sortedValues = _.sortBy(values, 'size').filter(function (obj) {return obj[sizeFieldName] > 0});
+                        sortedValues = _.sortBy(values, 'size').filter(function (obj) {return getValueByJsonPath(obj,sizeFieldName) > 0});
                         validMinSize = sortedValues[0] != null ? (sortedValues[0]['size'] != null ? sortedValues[0]['size'] : 0) :0;
                     }
                     if((validMinSize * 4) > sizeMinMax[1])

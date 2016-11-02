@@ -1409,10 +1409,13 @@ define([
             var sign = number < 0 ? '-' : '';
             number = Math.abs(+number || 0);
             var intPart = parseInt(number.toFixed(decimals), 10) + '';
-            if (Math.abs(number - intPart) > 0)
+            if (Math.abs(number - intPart) > 0) {
+                console.log(sign + intPart + (decimals ? decPoint + Math.abs(number - intPart).toFixed(decimals).slice(2) : '') + " "+suffix);
                 return sign + intPart + (decimals ? decPoint + Math.abs(number - intPart).toFixed(decimals).slice(2) : '') + " "+suffix;
-            else
+            } else {
+                console.log(sign + intPart +" "+suffix);
                 return sign + intPart +" "+suffix;
+            }
         };
 
         this.timeSeriesParser = function (config, data) {
@@ -1676,6 +1679,7 @@ define([
                               date: new Date(i/1000),
                               x: ifNull(i, 0)/1000,
                               y: failedBarCnt,
+                              x: ifNull(i, 0)/1000,
                               name: failureLabel,
                               total: total,
                           });
@@ -1708,6 +1712,44 @@ define([
             }
             return _.values(parsedData);
         };
+
+        this.parseDataForScatterChart = function(data,options) {
+            //Loop through and set the x, y and size field based on the chartOptions selected
+            var xField = getValueByJsonPath(options,'xField','x');
+            var yField = getValueByJsonPath(options,'yField','y');
+            var sizeField = getValueByJsonPath(options,'sizeField','size');
+            var ret =  [];
+            var clonedData = $.extend({},true,data);
+            $.each(clonedData,function(i,d){
+                d['x'] = getValueByJsonPath(d,xField,0);
+                d['y'] = getValueByJsonPath(d,yField,0);
+                d['size'] = getValueByJsonPath(d,sizeField,0);
+                ret.push(d);
+            });
+            return ret;
+        };
+
+        this.parsePercentilesData = function(data,options) {
+            var cf = crossfilter(data);
+//            var groupBy = getValueByJsonPath(options,'groupBy','95');
+            var yFields = getValueByJsonPath(options,'yFields',[]);
+            var parsedData = [];
+            var colors = getValueByJsonPath(options,'colors',cowc.THREE_NODE_COLOR);
+            $.each(yFields,function(i,yField){
+                var key = getLabelForPercentileYField(yField);
+                parsedData[yField] = {"key":key,"color":colors[i],values:[]};
+                var values = parsedData[yField]['values'];
+                $.each(data,function(j,d){
+                    values.push({x:getValueByJsonPath(d,"T="),y:getValueByJsonPath(d,yField)});
+                });
+                parsedData[yField]['values'] = values;
+            });
+            return _.values(parsedData);
+        };
+        function getLabelForPercentileYField (key) {
+            var splits = key.split(';');
+            return splits[splits.length - 1] + "th Percentile";
+        }
 
         this.parseLineBarChartWithFocus = function (data, options) {
             var cf = crossfilter(data);

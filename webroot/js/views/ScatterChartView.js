@@ -54,7 +54,7 @@ define([
                 chartViewConfig, chartData, chartModel, chartOptions;
 
             if (contrail.checkIfFunction(viewConfig['parseFn'])) {
-                data = viewConfig['parseFn'](data);
+                data = viewConfig['parseFn'](data,viewConfig['chartOptions']);
             }
 
             chartViewConfig = getChartViewConfig(selector, data);
