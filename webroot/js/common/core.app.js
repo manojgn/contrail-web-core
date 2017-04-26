@@ -207,7 +207,7 @@ function getCoreAppPaths(coreBaseDir, coreBuildDir, env) {
             'confignode-viewconfig'       : 'empty:',
             'monitor-infra-viewconfig'    : 'empty:',
             'global-controller-viewconfig': 'empty:',
-            'core-alarm-utils'            :  coreWebDir + '/js/common/core.alarms.utils'
+            'core-alarm-utils'            :  coreWebDir + '/js/common/core.alarms.utils',
             'alarms-viewconfig'           : coreWebDir + '/js/views/alarms/alarms.viewconfig'
 
         };
